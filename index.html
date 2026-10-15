@@ -8,15 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Leaflet CSS for Interactive Map (Zoom In/Out supported) -->
+    <!-- Leaflet CSS for Large Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
         body { font-family: 'Pyidaungsu', sans-serif; background-color: #fdf2f8; }
-        #map { height: 250px; width: 100%; border-radius: 0.75rem; }
+        #map { height: 350px; width: 100%; border-radius: 1rem; }
     </style>
 </head>
-<body class="text-gray-800 p-4 max-w-md mx-auto">
+<body class="text-gray-800 p-4 max-w-md mx-auto pb-10">
 
     <!-- App Header -->
     <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm">
@@ -24,11 +24,15 @@
         <span id="username" class="text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full">User</span>
     </div>
 
-    <!-- 1. LOCATION SHARING SECTION -->
+    <!-- Proximity Alert Box -->
+    <div id="alertBox" class="hidden mb-4 bg-red-100 border-2 border-red-400 text-red-700 p-3 rounded-2xl shadow-md text-sm font-bold animate-pulse">
+        🚨 သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!
+    </div>
+
+    <!-- 1. LARGE MAP SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
+        <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Map (Zoom In/Out)</h2>
         
-        <!-- Interactive Leaflet Map (Zoom In / Out & Multi-user support) -->
         <div class="mb-3 border border-pink-200 overflow-hidden shadow-inner">
             <div id="map"></div>
         </div>
@@ -48,7 +52,15 @@
         </button>
     </div>
 
-    <!-- 2. BUBU & DUDU GAME SECTION -->
+    <!-- 2. ACTIVE USERS LIST SECTION -->
+    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
+        <h2 class="font-bold text-md mb-2 text-pink-600">👥 Active Sharers List</h2>
+        <div id="userList" class="space-y-2 max-h-40 overflow-y-auto">
+            <p class="text-xs text-gray-400 text-center py-2">Location ဖွင့်ထားသူများ ရှာဖွေနေသည်...</p>
+        </div>
+    </div>
+
+    <!-- 3. BUBU & DUDU GAME SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
         <div class="flex justify-between items-center mb-2">
             <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sorting</h2>
@@ -56,7 +68,6 @@
         </div>
         <p class="text-xs text-gray-500 mb-4">ချစ်စရာ ဝက်ဝံလေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
 
-        <!-- Character Container -->
         <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
 
         <div class="flex gap-2">
@@ -69,10 +80,9 @@
         </div>
     </div>
 
-    <!-- Leaflet JS Library -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- JavaScript Logic -->
     <script>
         let tg = window.Telegram?.WebApp;
         if (tg) {
@@ -82,37 +92,72 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
-        // --- MAP INITIALIZATION ---
-        let map = L.map('map').setView([16.8661, 96.1951], 13); // Default Yangon
+        let map = L.map('map').setView([16.8661, 96.1951], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
+        let myCurrentLat = null;
+        let myCurrentLon = null;
 
-        // Sheet ထဲရှိ အခြားသူများ၏ Location များကို ဆွဲထုတ်ပြီး Map ပေါ်တွင် ပြရန်
         function fetchAllLocations() {
             fetch(GAS_URL)
                 .then(res => res.json())
                 .then(data => {
-                    markersLayer.clearLayers(); // Pin ဟောင်းများ ဖျက်မည်
+                    markersLayer.clearLayers();
+                    let listHTML = '';
+                    let alertTriggered = false;
+
+                    let myUserId = tg?.initDataUnsafe?.user?.id?.toString() || "123456";
+
                     data.forEach(loc => {
                         if (loc.latitude && loc.longitude) {
-                            let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b><br>Status: ${loc.status}`);
+                            // Map Pin
+                            let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b>`);
                             markersLayer.addLayer(marker);
+
+                            // Distance calculation if it's other users and we have our location
+                            let distanceText = "";
+                            if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
+                                let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
+                                if (distFeet < 500) {
+                                    alertTriggered = true;
+                                }
+                                distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
+                            }
+
+                            // User List HTML
+                            listHTML += `
+                                <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs">
+                                    <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
+                                    <button onclick="focusMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-2.5 py-1 rounded-lg">View</button>
+                                </div>
+                            `;
                         }
                     });
+
+                    document.getElementById('userList').innerHTML = listHTML || '<p class="text-xs text-gray-400 text-center py-2">Active sharers မရှိသေးပါ။</p>';
+                    
+                    // Show/Hide Alert Box
+                    let alertBox = document.getElementById('alertBox');
+                    if (alertTriggered) {
+                        alertBox.classList.remove('hidden');
+                    } else {
+                        alertBox.classList.add('hidden');
+                    }
                 })
-                .catch(err => console.log("Error fetching locations:", err));
+                .catch(err => console.log("Error:", err));
         }
 
-        // ၅ စက္ကန့်တစ်ကြိမ် အခြားသူများ၏ နေရာများကို Map ပေါ်တွင် Update လုပ်မည်
+        function focusMap(lat, lon) {
+            map.setView([lat, lon], 16);
+        }
+
         setInterval(fetchAllLocations, 5000);
         fetchAllLocations();
 
-
-        // --- LOCATION SHARING LOGIC ---
         let watchId = null;
         let lastLat = null;
         let lastLon = null;
@@ -135,6 +180,8 @@
                 }
             } else {
                 navigator.geolocation.clearWatch(watchId);
+                sendToGAS(lastLat || 16.8661, lastLon || 96.1951, "Stopped");
+                
                 watchId = null;
                 document.getElementById('status').innerText = "Status: ရပ်တန့်ထားသည်";
                 btn.innerText = "Location စတင်မျှဝေမည်";
@@ -145,22 +192,24 @@
         function handlePosition(position) {
             let lat = position.coords.latitude;
             let lon = position.coords.longitude;
-            document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+            myCurrentLat = lat;
+            myCurrentLon = lon;
 
-            // မိမိနေရာသို့ Map ကို Zoom ဖြင့် ရွေ့ပြရန်
+            document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
             map.setView([lat, lon], 15);
 
             let isAuto = document.getElementById('autoToggle').checked;
 
+            // 🛑 Location အပ်ဒိတ်ဖြစ်မှသာ (ပေ ၁၀၀ ကျော်မှသာ) အကွာအဝေး တွက်ချက်၍ GAS သို့ ပို့မည်
             if (isAuto && lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
                 if (distanceInFeet >= 100) {
-                    sendToGAS(lat, lon);
+                    sendToGAS(lat, lon, "Active");
                     lastLat = lat;
                     lastLon = lon;
                 }
-            } else {
-                sendToGAS(lat, lon);
+            } else if (lastLat === null) {
+                sendToGAS(lat, lon, "Active");
                 lastLat = lat;
                 lastLon = lon;
             }
@@ -174,15 +223,15 @@
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 5280;
+            return R * c * 5280; // Feet
         }
 
         function handleError(error) {
             document.getElementById('status').innerText = "Status: Location ရယူ၍ မရပါ";
         }
 
-        function sendToGAS(lat, lon) {
-            document.getElementById('status').innerText = "Status: Google Sheet သို့ ပို့နေသည်...";
+        function sendToGAS(lat, lon, statusScore = "Active") {
+            document.getElementById('status').innerText = statusScore === "Active" ? "Status: Google Sheet သို့ ပို့နေသည်..." : "Status: မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ";
             let userId = tg?.initDataUnsafe?.user?.id || "123456";
             let userName = tg?.initDataUnsafe?.user?.first_name || "Bubu";
 
@@ -190,9 +239,11 @@
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: userId, name: userName, latitude: lat, longitude: lon })
+                body: JSON.stringify({ userId: userId, name: userName, latitude: lat, longitude: lon, statusScore: statusScore })
             }).then(() => {
-                document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅";
+                if(statusScore === "Active") {
+                    document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅";
+                }
                 fetchAllLocations();
             }).catch(err => {
                 document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌";
