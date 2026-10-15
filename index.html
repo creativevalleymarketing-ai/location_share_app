@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubu & Dudu Location & Game App</title>
+    <!-- Tailwind CSS for Modern UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
+        body { font-family: 'Pyidaungsu', sans-serif; background-color: #f0fdf4; }
+    </style>
+</head>
+<body class="text-gray-800 p-4 max-w-md mx-auto">
+
+    <!-- App Header -->
+    <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm">
+        <h1 class="font-bold text-lg text-emerald-600">🐼 Bubu & Dudu App</h1>
+        <span id="username" class="text-sm bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">User</span>
+    </div>
+
+    <!-- 1. LOCATION SHARING SECTION -->
+    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-emerald-100">
+        <h2 class="font-bold text-md mb-2 flex items-center gap-2">📍 Location Sharing</h2>
+        <div class="bg-emerald-50 p-3 rounded-xl mb-3 text-sm">
+            <p id="status" class="text-emerald-800 font-medium">Status: မစတင်ရသေးပါ</p>
+            <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
+        </div>
+        
+        <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl">
+            <span class="text-sm text-gray-600">ပေ ၁၀၀ ရွေ့မှ ပို့ရန် (Auto)</span>
+            <input type="checkbox" id="autoToggle" class="w-5 h-5 accent-emerald-600" checked>
+        </div>
+
+        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl transition duration-200">
+            Location စတင်မျှဝေမည်
+        </button>
+    </div>
+
+    <!-- 2. BUBBLE SORT GAME SECTION (Bubu & Dudu Theme) -->
+    <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-100">
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="font-bold text-md text-pink-600">🧸 Bubu Dudu Bubble Sort</h2>
+            <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Bubu & Dudu တို့ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
+
+        <!-- Bubble Container -->
+        <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-16 bg-pink-50 rounded-xl p-2">
+            <!-- JavaScript ဖြင့် Bubu Dudu များကို ဤနေရာတွင် ထည့်ပါမည် -->
+        </div>
+
+        <div class="flex gap-2">
+            <button onclick="startBubbleSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
+                Start Sorting
+            </button>
+            <button onclick="resetGame()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition">
+                Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Telegram User အမည်ဖော်ပြရန်
+        document.getElementById('username').innerText = tg.initDataUnsafe?.user?.first_name || "Guest";
+
+        // --- LOCATION LOGIC (ပေ ၁၀၀ ရွေ့မှ ပို့မည့် စနစ်) ---
+        let watchId = null;
+        let lastLat = null;
+        let lastLon = null;
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec"; // သင့်ရဲ့ GAS Deployment URL ကို ဤနေရာတွင် ထည့်ပါ
+
+        function toggleLocationSharing() {
+            const btn = document.getElementById('shareBtn');
+            if (watchId === null) {
+                if (navigator.geolocation) {
+                    document.getElementById('status').innerText = "Status: တည်နေရာကို ရှာဖွေနေပါပြီ...";
+                    btn.innerText = "Location ရပ်တန့်မည်";
+                    btn.classList.replace('bg-emerald-600', 'bg-red-500');
+                    btn.classList.replace('hover:bg-emerald-700', 'hover:bg-red-600');
+
+                    watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
+                        enableHighAccuracy: true,
+                        maximumAge: 10000,
+                        timeout: 5000
+                    });
+                } else {
+                    alert("이 Browser သည် Geolocation ကို မထောက်ပံ့ပါ။");
+                }
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                document.getElementById('status').innerText = "Status: ရပ်တန့်ထားသည်";
+                btn.innerText = "Location စတင်မျှဝေမည်";
+                btn.classList.replace('bg-red-500', 'bg-emerald-600');
+                btn.classList.replace('hover:bg-red-600', 'hover:bg-emerald-700');
+            }
+        }
+
+        function handlePosition(position) {
+            let lat = position.coords.latitude;
+            let lon = position.coords.longitude;
+            document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+
+            let isAuto = document.getElementById('autoToggle').checked;
+
+            if (isAuto && lastLat !== null && lastLon !== null) {
+                let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
+                // ပေ ၁၀၀ (Feet) ကျော်မှသာ GAS ဆီ ပို့မည် (1 foot ≈ 0.3048 meters -> 100 ft ≈ 30.48 meters)
+                if (distanceInFeet >= 100) {
+                    sendToGAS(lat, lon);
+                    lastLat = lat;
+                    lastLon = lon;
+                }
+            } else {
+                // ပထမအကြိမ် (သို့) Auto ပိတ်ထားလျှင် ပို့မည်
+                sendToGAS(lat, lon);
+                lastLat = lat;
+                lastLon = lon;
+            }
+        }
+
+        // မီတာ/ပေ တွက်ချက်သည့် Formula (Haversine)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 3958.8; // Radius of earth in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distanceInMiles = R * c;
+            const distanceInFeet = distanceInMiles * 5280; // Miles to Feet
+            return distanceInFeet;
+        }
+
+        function handleError(error) {
+            document.getElementById('status').innerText = "Status: Location ရယူ၍ မရပါ";
+        }
+
+        function sendToGAS(lat, lon) {
+            document.getElementById('status').innerText = "Status: Google Sheet သို့ ပို့နေသည်...";
+            let userId = tg.initDataUnsafe?.user?.id || "123456";
+            let userName = tg.initDataUnsafe?.user?.first_name || "Bubu";
+
+            fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: userId, name: userName, latitude: lat, longitude: lon })
+            }).then(() => {
+                document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅ (Active)";
+            }).catch(err => {
+                document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌";
+            });
+        }
+
+
+        // --- BUBU DUDU BUBBLE SORT GAME LOGIC ---
+        let bubuArray = [5, 2, 8, 1, 9]; // Bubu & Dudu ဇာတ်ကောင်အရွယ်အစား ကိုယ်စားပြု နံပါတ်များ
+
+        function renderBubbles() {
+            const container = document.getElementById('bubbleContainer');
+            container.innerHTML = '';
+            bubuArray.forEach(val => {
+                let div = document.createElement('div');
+                div.className = "w-10 h-10 bg-pink-200 border-2 border-pink-400 rounded-full flex items-center justify-center font-bold text-pink-700 shadow-sm transition-all duration-300";
+                div.innerText = val;
+                container.appendChild(div);
+            });
+        }
+
+        function resetGame() {
+            bubuArray = [5, 2, 8, 1, 9].sort(() => Math.random() - 0.5);
+            renderBubbles();
+        }
+
+        async function startBubbleSort() {
+            let arr = [...bubuArray];
+            let len = arr.length;
+            const container = document.getElementById('bubbleContainer');
+
+            for (let i = 0; i < len; i++) {
+                for (let j = 0; j < len - i - 1; j++) {
+                    // Visual highlight for comparing
+                    let nodes = container.children;
+                    nodes[j].classList.add('bg-pink-400', 'text-white');
+                    nodes[j+1].classList.add('bg-pink-400', 'text-white');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    if (arr[j] > arr[j + 1]) {
+                        let temp = arr[j];
+                        arr[j] = arr[j + 1];
+                        arr[j + 1] = temp;
+                        bubuArray = [...arr];
+                        renderBubbles();
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+
+                    nodes[j].classList.remove('bg-pink-400', 'text-white');
+                    nodes[j+1].classList.remove('bg-pink-400', 'text-white');
+                }
+            }
+        }
+
+        // Initial render for game
+        renderBubbles();
+    </script>
+</body>
+</html>
+
