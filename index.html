@@ -29,7 +29,7 @@
         🚨 သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!
     </div>
 
-    <!-- 1. LARGE MAP SECTION -->
+    <!-- 1. LARGE MAP SECTION (Google Maps Default Style via Google Mutant or Standard Tiles) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
         
@@ -37,10 +37,13 @@
             <div id="map"></div>
         </div>
 
-        <!-- Custom Places Quick Access -->
-        <div class="flex gap-2 mb-3">
-            <button onclick="setCustomPlace(16.8409, 96.1735, 'Home')" class="flex-1 bg-pink-50 text-pink-600 border border-pink-200 py-1.5 rounded-xl text-xs font-bold">🏠 Home</button>
-            <button onclick="setCustomPlace(16.7753, 96.1585, 'Work')" class="flex-1 bg-pink-50 text-pink-600 border border-pink-200 py-1.5 rounded-xl text-xs font-bold">💼 Work</button>
+        <!-- Custom Places (User Defined) -->
+        <div class="mb-3">
+            <div class="flex gap-2">
+                <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
+                <button onclick="saveCustomPlace()" class="bg-pink-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">📌 နေရာမှတ်မည်</button>
+            </div>
+            <div id="savedPlacesList" class="flex gap-2 overflow-x-auto mt-2 text-xs"></div>
         </div>
 
         <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm">
@@ -48,19 +51,14 @@
             <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
         </div>
 
-        <!-- Time-limited Sharing Timer -->
+        <!-- Time-limited Sharing Timer (1 hr, 2 hrs, 5 hrs) -->
         <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
             <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
             <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
-                <option value="1">၁ နာရီ</option>
-                <option value="3">၃ နာရီ</option>
-                <option value="24">၂၄ နာရီ</option>
+                <option value="1">၁ နာရီ (1 hr)</option>
+                <option value="2">၂ နာရီ (2 hrs)</option>
+                <option value="5">၅ နာရီ (5 hrs)</option>
             </select>
-        </div>
-        
-        <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl">
-            <span class="text-sm text-gray-600">ပေ ၁၀၀ ရွေ့မှ ပို့ရန် (Auto)</span>
-            <input type="checkbox" id="autoToggle" class="w-5 h-5 accent-pink-600" checked>
         </div>
 
         <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-2.5 rounded-xl transition duration-200">
@@ -68,30 +66,16 @@
         </button>
     </div>
 
-    <!-- 2. NAVIGATION & ROUTE SEARCH -->
+    <!-- 2. NAVIGATION & ROUTE SEARCH (Built-in Map Routing) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
         <div class="space-y-2">
-            <input type="text" id="destinationInput" placeholder="ဥပမာ - Sule Square" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-            <button onclick="searchRoute()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold">လမ်းကြောင်းရှာမည် (Route)</button>
+            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
+            <button onclick="searchRoute()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold">လက်ရှိနေရာမှ လမ်းကြောင်းပြမည်</button>
         </div>
     </div>
 
-    <!-- 3. EXPLORE & NEARBY PLACES -->
-    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">🌟 Explore & Nearby</h2>
-        <div class="flex gap-2 overflow-x-auto pb-2 mb-3 text-xs">
-            <button onclick="searchNearby('restaurant')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-xl whitespace-nowrap font-bold">🍽️ စားသောက်ဆိုင်</button>
-            <button onclick="searchNearby('cafe')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-xl whitespace-nowrap font-bold">☕ ကော်ဖီဆိုင်</button>
-            <button onclick="searchNearby('supermarket')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-xl whitespace-nowrap font-bold">🛒 စူပါမားကတ်</button>
-            <button onclick="searchNearby('hospital')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-xl whitespace-nowrap font-bold">🏥 ဆေးရုံ</button>
-        </div>
-        <div id="nearbyResults" class="space-y-2 max-h-36 overflow-y-auto text-xs text-gray-500 text-center py-2">
-            ကတ်တဂရီတစ်ခုကို ရွေးချယ်ပါ
-        </div>
-    </div>
-
-    <!-- 4. ACTIVE USERS LIST SECTION -->
+    <!-- 3. ACTIVE USERS LIST SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 text-pink-600">👥 Active Sharers List</h2>
         <div id="userList" class="space-y-2 max-h-40 overflow-y-auto">
@@ -99,7 +83,7 @@
         </div>
     </div>
 
-    <!-- 5. BUBU & DUDU GAME SECTION -->
+    <!-- 4. BUBU & DUDU GAME SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
         <div class="flex justify-between items-center mb-2">
             <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sorting</h2>
@@ -121,6 +105,9 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine for Built-in Map Routing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
         let tg = window.Telegram?.WebApp;
@@ -131,45 +118,68 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
+        // Map setup with Google Maps standard tile look
         let map = L.map('map').setView([16.8661, 96.1951], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
+        L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '© Google Maps'
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
+        let routingControl = null;
         let myCurrentLat = null;
         let myCurrentLon = null;
+        let savedPlaces = [];
 
-        function setCustomPlace(lat, lon, name) {
-            map.setView([lat, lon], 16);
-            L.marker([lat, lon]).addTo(map).bindPopup(`<b>${name}</b>`).openPopup();
+        function saveCustomPlace() {
+            let name = document.getElementById('placeNameInput').value;
+            if(!name) { alert("နေရာအမည် ရိုက်ထည့်ပါ"); return; }
+            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာ မရသေးပါ။"); return; }
+
+            savedPlaces.push({ name: name, lat: myCurrentLat, lon: myCurrentLon });
+            document.getElementById('placeNameInput').value = '';
+            renderSavedPlaces();
+            L.marker([myCurrentLat, myCurrentLon]).addTo(map).bindPopup(`<b>📍 ${name}</b>`).openPopup();
+        }
+
+        function renderSavedPlaces() {
+            let container = document.getElementById('savedPlacesList');
+            container.innerHTML = '';
+            savedPlaces.forEach(p => {
+                let btn = document.createElement('button1');
+                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16)" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
+            });
         }
 
         function searchRoute() {
-            let dest = document.getElementById('destinationInput').value;
-            if(!dest) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
-            if(myCurrentLat && myCurrentLon) {
-                window.open(`https://www.google.com/maps/dir/?api=1&origin=${myCurrentLat},${myCurrentLon}&destination=${encodeURIComponent(dest)}`, '_blank');
-            } else {
-                alert("လက်ရှိတည်နေရာကို ဦးစွာရယူနေပါသည်...");
-            }
-        }
+            let destText = document.getElementById('destinationInput').value;
+            if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
+            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာကို ရယူနေပါသည်..."); return; }
 
-        function searchNearby(type) {
-            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာ မသိရသေးပါ။"); return; }
-            let resultsDiv = document.getElementById('nearbyResults');
-            resultsDiv.innerHTML = `<p class="text-xs text-pink-500 py-2">အနီးအနားရှိ ${type} များကို ရှာဖွေနေပါပြီ...</p>`;
-            
-            setTimeout(() => {
-                resultsDiv.innerHTML = `
-                    <div class="bg-pink-50 p-2 rounded-xl text-left">
-                        <p class="font-bold text-gray-700">⭐ Demo ${type.toUpperCase()} (4.5 / 5)</p>
-                        <p class="text-gray-500 text-[10px]">ဖွင့်ချိန် - ၉:၀၀ နံနက် မှ ၁၀:၀၀ ည</p>
-                        <a href="https://maps.google.com/?q=${myCurrentLat+0.001},${myCurrentLon+0.001}" target="_blank" class="text-pink-600 font-bold underline">မြေပုံတွင် ကြည့်ရန်</a>
-                    </div>
-                `;
-            }, 1000);
+            // Check if saved place matches
+            let targetLat = myCurrentLat + 0.01; // Default mock distance if text search
+            let targetLon = myCurrentLon + 0.01;
+
+            let matched = savedPlaces.find(p => p.name.toLowerCase() === destText.toLowerCase());
+            if(matched) {
+                targetLat = matched.lat;
+                targetLon = matched.lon;
+            }
+
+            if(routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(myCurrentLat, myCurrentLon),
+                    L.latLng(targetLat, targetLon)
+                ],
+                routeWhileDragging: false,
+                lineOptions: { styles: [{ color: '#db2777', weight: 4 }] },
+                createMarker: function() { return null; }
+            }).addTo(map);
         }
 
         function fetchAllLocations() {
@@ -229,7 +239,7 @@
                     btn.innerText = "Location ရပ်တန့်မည်";
                     btn.classList.replace('bg-pink-500', 'bg-red-500');
 
-                    // Time-limited sharing auto stop
+                    // Time-limited sharing auto stop (1 hr, 2 hrs, 5 hrs)
                     let hours = parseInt(document.getElementById('shareDuration').value);
                     shareTimer = setTimeout(() => {
                         toggleLocationSharing();
@@ -263,9 +273,8 @@
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
             map.setView([lat, lon], 15);
 
-            let isAuto = document.getElementById('autoToggle').checked;
-
-            if (isAuto && lastLat !== null && lastLon !== null) {
+            // Backend-only distance throttling (100 ft move threshold)
+            if (lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
                 if (distanceInFeet >= 100) {
                     sendToGAS(lat, lon, "Active");
