@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Locater App</title>
-    <!-- Tailwind CSS for Modern UI -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Leaflet CSS for Interactive Map (Zoom In/Out supported) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
         body { font-family: 'Pyidaungsu', sans-serif; background-color: #fdf2f8; }
+        #map { height: 250px; width: 100%; border-radius: 0.75rem; }
     </style>
 </head>
 <body class="text-gray-800 p-4 max-w-md mx-auto">
@@ -23,11 +26,11 @@
 
     <!-- 1. LOCATION SHARING SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 flex items-center gap-2">📍 Location Sharing</h2>
+        <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
         
-        <!-- Live Map View -->
-        <div class="mb-3 rounded-xl overflow-hidden border border-pink-200 h-40 bg-gray-100">
-            <iframe id="mapFrame" width="100%" height="100%" frameborder="0" style="border:0" src="" allowfullscreen></iframe>
+        <!-- Interactive Leaflet Map (Zoom In / Out & Multi-user support) -->
+        <div class="mb-3 border border-pink-200 overflow-hidden shadow-inner">
+            <div id="map"></div>
         </div>
 
         <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm">
@@ -54,9 +57,7 @@
         <p class="text-xs text-gray-500 mb-4">ချစ်စရာ ဝက်ဝံလေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
 
         <!-- Character Container -->
-        <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto">
-            <!-- JavaScript ဖြင့် ဇာတ်ကောင်များ ထည့်ပါမည် -->
-        </div>
+        <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
 
         <div class="flex gap-2">
             <button onclick="startBubbleSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
@@ -68,6 +69,9 @@
         </div>
     </div>
 
+    <!-- Leaflet JS Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- JavaScript Logic -->
     <script>
         let tg = window.Telegram?.WebApp;
@@ -76,10 +80,42 @@
             document.getElementById('username').innerText = tg.initDataUnsafe?.user?.first_name || "Guest";
         }
 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
+
+        // --- MAP INITIALIZATION ---
+        let map = L.map('map').setView([16.8661, 96.1951], 13); // Default Yangon
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let markersLayer = L.layerGroup().addTo(map);
+
+        // Sheet ထဲရှိ အခြားသူများ၏ Location များကို ဆွဲထုတ်ပြီး Map ပေါ်တွင် ပြရန်
+        function fetchAllLocations() {
+            fetch(GAS_URL)
+                .then(res => res.json())
+                .then(data => {
+                    markersLayer.clearLayers(); // Pin ဟောင်းများ ဖျက်မည်
+                    data.forEach(loc => {
+                        if (loc.latitude && loc.longitude) {
+                            let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b><br>Status: ${loc.status}`);
+                            markersLayer.addLayer(marker);
+                        }
+                    });
+                })
+                .catch(err => console.log("Error fetching locations:", err));
+        }
+
+        // ၅ စက္ကန့်တစ်ကြိမ် အခြားသူများ၏ နေရာများကို Map ပေါ်တွင် Update လုပ်မည်
+        setInterval(fetchAllLocations, 5000);
+        fetchAllLocations();
+
+
+        // --- LOCATION SHARING LOGIC ---
         let watchId = null;
         let lastLat = null;
         let lastLon = null;
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
         function toggleLocationSharing() {
             const btn = document.getElementById('shareBtn');
@@ -111,9 +147,8 @@
             let lon = position.coords.longitude;
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
 
-            // Map ပေါ်တွင် လက်ရှိနေရာကို ပြသရန်
-            let mapUrl = `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
-            document.getElementById('mapFrame').src = mapUrl;
+            // မိမိနေရာသို့ Map ကို Zoom ဖြင့် ရွေ့ပြရန်
+            map.setView([lat, lon], 15);
 
             let isAuto = document.getElementById('autoToggle').checked;
 
@@ -158,12 +193,13 @@
                 body: JSON.stringify({ userId: userId, name: userName, latitude: lat, longitude: lon })
             }).then(() => {
                 document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅";
+                fetchAllLocations();
             }).catch(err => {
                 document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌";
             });
         }
 
-        // --- BUBU & DUDU CHARACTER SORTING ---
+        // --- BUBU & DUDU SORTING GAME ---
         let characterArray = [
             { id: 1, size: 2, emoji: "🧸", label: "Small" },
             { id: 2, size: 5, emoji: "🐻", label: "Medium" },
