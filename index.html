@@ -12,15 +12,24 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
-        body { font-family: 'Pyidaungsu', sans-serif; background-color: #fdf2f8; }
-        #map { height: 350px; width: 100%; border-radius: 1rem; }
+        body { font-family: 'Pyidaungsu', sans-serif; transition: background-color 0.3s; }
+        #map { height: 500px; width: 100%; border-radius: 1rem; }
     </style>
 </head>
-<body class="text-gray-800 p-4 max-w-md mx-auto pb-10">
-    <!-- App Header -->
-    <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm">
-        <h1 class="font-bold text-lg text-pink-600">📍 Live Locater App</h1>
-        <span id="username" class="text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full">User</span>
+<body id="appBody" class="text-gray-800 p-4 max-w-md mx-auto pb-10 bg-pink-50">
+    
+    <!-- App Header & Theme Selector -->
+    <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm border border-theme">
+        <h1 class="font-bold text-lg text-theme">📍 Live Locater</h1>
+        <div class="flex items-center gap-2">
+            <!-- Theme Selector -->
+            <select id="themeSelect" onchange="changeTheme(this.value)" class="text-xs border rounded-lg p-1 bg-gray-50 outline-none">
+                <option value="pink">🌸 Pink Theme</option>
+                <option value="mint">🌿 Mint Green</option>
+                <option value="ocean">🌊 Ocean Blue</option>
+            </select>
+            <span id="username" class="text-xs bg-theme-light text-theme px-2 py-1 rounded-full font-bold">User</span>
+        </div>
     </div>
 
     <!-- Proximity Alert Box -->
@@ -29,29 +38,29 @@
     </div>
 
     <!-- 1. LARGE MAP SECTION -->
-    <div id="mapSection" class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
+    <div id="mapSection" class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
         <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
 
-        <div class="mb-3 border border-pink-200 overflow-hidden shadow-inner">
+        <div class="mb-3 border border-theme overflow-hidden shadow-inner">
             <div id="map"></div>
         </div>
 
         <!-- Custom Places -->
         <div class="mb-3">
             <div class="flex gap-2">
-                <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-                <button onclick="saveCustomPlace()" class="bg-pink-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">📌 နေရာမှတ်မည်</button>
+                <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border p-2 rounded-xl text-xs outline-none focus:border-theme">
+                <button onclick="saveCustomPlace()" class="btn-theme text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">📌 နေရာမှတ်မည်</button>
             </div>
             <div id="savedPlacesList" class="flex gap-2 overflow-x-auto mt-2 text-xs"></div>
         </div>
 
-        <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm">
-            <p id="status" class="text-pink-800 font-medium">Status: မစတင်ရသေးပါ</p>
+        <div class="bg-theme-light p-3 rounded-xl mb-3 text-sm">
+            <p id="status" class="text-theme font-medium">Status: မစတင်ရသေးပါ</p>
             <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
-            <p id="etaText" class="text-xs font-bold text-pink-700 mt-1 hidden"></p>
+            <p id="etaText" class="text-xs font-bold text-theme mt-1 hidden"></p>
         </div>
 
-        <!-- Time-limited Sharing Timer (Added 10 Hours Option) -->
+        <!-- Time-limited Sharing Timer -->
         <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
             <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
             <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
@@ -62,47 +71,73 @@
             </select>
         </div>
 
-        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-2.5 rounded-xl transition duration-200">
+        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full btn-theme text-white font-medium py-2.5 rounded-xl transition duration-200">
             Location စတင်မျှဝေမည်
         </button>
     </div>
 
     <!-- 2. NAVIGATION & ROUTE -->
-    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
+    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
+        <h2 class="font-bold text-md mb-2 text-theme">🧭 Navigation & Route</h2>
         <div class="space-y-2">
-            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-            <button onclick="calculateInAppRoute()" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-xl text-xs font-bold transition">
+            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border p-2 rounded-xl text-xs outline-none focus:border-theme">
+            <button onclick="calculateInAppRoute()" class="w-full btn-theme text-white py-2 rounded-xl text-xs font-bold transition">
                 🗺️ လက်ရှိနေရာမှ လမ်းကြောင်းဆွဲမည်
             </button>
         </div>
     </div>
 
     <!-- 3. ACTIVE USERS LIST SECTION -->
-    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">👥 Active Sharers List</h2>
+    <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
+        <h2 class="font-bold text-md mb-2 text-theme">👥 Active Sharers List</h2>
         <div id="userList" class="space-y-2 max-h-40 overflow-y-auto">
             <p class="text-xs text-gray-400 text-center py-2">Location ဖွင့်ထားသူများ ရှာဖွေနေသည်...</p>
         </div>
     </div>
 
-    <!-- 4. BUBBLE SORTING GAME SECTION -->
-    <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
-        <div class="flex justify-between items-center mb-2">
-            <h2 class="font-bold text-md text-pink-600">🤎 Bubble Sorting</h2>
-            <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
+    <!-- 4. MINI GAMES SECTION (3 Games Included) -->
+    <div class="bg-white p-4 rounded-2xl shadow-md border border-theme">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="font-bold text-md text-theme">🎮 Mini Games Zone</h2>
+            <select id="gameSelect" onchange="switchGame(this.value)" class="text-xs border rounded-lg p-1 bg-gray-50 outline-none">
+                <option value="bubble">🤎 Bubble Sorting</option>
+                <option value="memory">🧠 Memory Matching</option>
+                <option value="snake">🐍 Classic Snake</option>
+            </select>
         </div>
-        <p class="text-xs text-gray-500 mb-4">ချစ်စရာ အရုပ်လေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
 
-        <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
+        <!-- GAME 1: BUBBLE SORTING -->
+        <div id="gameBubble">
+            <p class="text-xs text-gray-500 mb-3">အရုပ်လေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
+            <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-20 bg-theme-light rounded-xl p-2 overflow-x-auto"></div>
+            <div class="flex gap-2">
+                <button onclick="startBubbleSort()" id="sortBtn" class="flex-1 btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Start Sorting</button>
+                <button onclick="resetGame()" id="resetBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition text-xs">Reset</button>
+            </div>
+        </div>
 
-        <div class="flex gap-2">
-            <button onclick="startBubbleSort()" id="sortBtn" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
-                Start Sorting
-            </button>
-            <button onclick="resetGame()" id="resetBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition">
-                Reset
-            </button>
+        <!-- GAME 2: MEMORY CARD MATCHING -->
+        <div id="gameMemory" class="hidden">
+            <p class="text-xs text-gray-500 mb-3">တူညီသော Emoji များ မှတ်မိအောင် ရှာဖွေပါ!</p>
+            <div id="memoryGrid" class="grid grid-cols-4 gap-2 mb-4 bg-theme-light p-3 rounded-xl"></div>
+            <button onclick="initMemoryGame()" class="w-full btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Reset Game</button>
+        </div>
+
+        <!-- GAME 3: CLASSIC SNAKE -->
+        <div id="gameSnake" class="hidden text-center">
+            <p class="text-xs text-gray-500 mb-2">Score: <span id="snakeScore" class="font-bold text-theme">0</span></p>
+            <canvas id="snakeCanvas" width="240" height="200" class="mx-auto bg-gray-900 rounded-xl mb-3 border border-theme"></canvas>
+            
+            <!-- Mobile D-Pad Controls -->
+            <div class="grid grid-cols-3 gap-1 w-36 mx-auto mb-3">
+                <div></div>
+                <button onclick="setDirection('UP')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">⬆️</button>
+                <div></div>
+                <button onclick="setDirection('LEFT')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">⬅️</button>
+                <button onclick="setDirection('DOWN')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">⬇️</button>
+                <button onclick="setDirection('RIGHT')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">➡️</button>
+            </div>
+            <button onclick="startSnakeGame()" class="w-full btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Start Snake Game</button>
         </div>
     </div>
 
@@ -122,6 +157,33 @@
         }
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
+
+        // --- Theme Switcher Logic ---
+        const themes = {
+            pink: { bodyBg: 'bg-pink-50', text: 'text-pink-600', bgLight: 'bg-pink-50', btn: 'bg-pink-500 hover:bg-pink-600', border: 'border-pink-200' },
+            mint: { bodyBg: 'bg-emerald-50', text: 'text-emerald-600', bgLight: 'bg-emerald-50', btn: 'bg-emerald-600 hover:bg-emerald-700', border: 'border-emerald-200' },
+            ocean: { bodyBg: 'bg-sky-50', text: 'text-sky-600', bgLight: 'bg-sky-50', btn: 'bg-sky-600 hover:bg-sky-700', border: 'border-sky-200' }
+        };
+
+        function changeTheme(themeName) {
+            const currentTheme = themes[themeName] || themes.pink;
+            document.getElementById('appBody').className = `text-gray-800 p-4 max-w-md mx-auto pb-10 ${currentTheme.bodyBg}`;
+
+            document.querySelectorAll('.text-theme').forEach(el => {
+                el.className = el.className.replace(/text-(pink|emerald|sky)-\d+/, currentTheme.text);
+            });
+            document.querySelectorAll('.btn-theme').forEach(el => {
+                el.className = el.className.replace(/bg-(pink|emerald|sky)-\d+\s+hover:bg-(pink|emerald|sky)-\d+/, currentTheme.btn);
+            });
+            document.querySelectorAll('.bg-theme-light').forEach(el => {
+                el.className = el.className.replace(/bg-(pink|emerald|sky)-50/, currentTheme.bgLight);
+            });
+            document.querySelectorAll('.border-theme').forEach(el => {
+                el.className = el.className.replace(/border-(pink|emerald|sky)-\d+/, currentTheme.border);
+            });
+
+            localStorage.setItem('selectedTheme', themeName);
+        }
 
         // Map setup
         let map = L.map('map').setView([16.8661, 96.1951], 13);
@@ -153,11 +215,10 @@
             let container = document.getElementById('savedPlacesList');
             container.innerHTML = '';
             savedPlaces.forEach(p => {
-                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16); map.invalidateSize();" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
+                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16); map.invalidateSize();" class="bg-gray-100 text-gray-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
             });
         }
 
-        // --- In-App Navigation Route & ETA Calculator (Optimized for Yangon/Myanmar) ---
         function calculateInAppRoute() {
             let destText = document.getElementById('destinationInput').value.trim();
             if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
@@ -181,9 +242,7 @@
                 let viewbox = "94.5,16.2,97.8,17.5"; 
                 let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}&viewbox=${viewbox}&bounded=1`;
 
-                fetch(searchUrl, {
-                    headers: { 'User-Agent': 'LiveLocaterApp/1.0' }
-                })
+                fetch(searchUrl, { headers: { 'User-Agent': 'LiveLocaterApp/1.0' } })
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
@@ -191,9 +250,7 @@
                         targetLon = parseFloat(data[0].lon);
                         drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
                     } else {
-                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText + ', Myanmar')}`, {
-                            headers: { 'User-Agent': 'LiveLocaterApp/1.0' }
-                        })
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText + ', Myanmar')}`, { headers: { 'User-Agent': 'LiveLocaterApp/1.0' } })
                         .then(res => res.json())
                         .then(fallbackData => {
                             if (fallbackData && fallbackData.length > 0) {
@@ -203,11 +260,9 @@
                             } else {
                                 alert("ထိုနေရာကို မရှာတွေ့ပါ၊ Lat, Lon တိုက်ရိုက် ရိုက်ထည့်ပေးပါ သို့မဟုတ် Saved Place သုံးပါ");
                             }
-                        })
-                        .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
+                        });
                     }
-                })
-                .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
+                });
             }
         }
 
@@ -224,7 +279,7 @@
                         let route = data.routes[0];
                         let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
-                        routeLine = L.polyline(coords, { color: '#db2777', weight: 5, opacity: 0.8 }).addTo(map);
+                        routeLine = L.polyline(coords, { color: '#0284c7', weight: 5, opacity: 0.8 }).addTo(map);
                         map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
 
                         let durationMinutes = Math.round(route.duration / 60);
@@ -235,10 +290,6 @@
                         etaDisplay.innerText = `⏱️ ခန့်မှန်းကြာချိန် - ${durationMinutes} မိနစ် (ရောက်ရှိမည့်အချိန် - ${timeString})`;
                         etaDisplay.classList.remove('hidden');
                     }
-                })
-                .catch(() => {
-                    routeLine = L.polyline([[lat1, lon1], [lat2, lon2]], { color: '#db2777', weight: 4, dashArray: '5, 10' }).addTo(map);
-                    map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
                 });
         }
 
@@ -264,13 +315,13 @@
                                     alertTriggered = true; 
                                     alertUserName = loc.name;
                                 }
-                                distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
+                                distanceText = `<span class="text-xs font-bold text-gray-500">(${distFeet.toFixed(0)} ft away)</span>`;
                             }
 
                             listHTML += `
-                                <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs">
+                                <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl text-xs">
                                     <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
-                                    <button onclick="drawLineToUser(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-2.5 py-1 rounded-lg">View</button>
+                                    <button onclick="drawLineToUser(${loc.latitude}, ${loc.longitude})" class="btn-theme text-white px-2.5 py-1 rounded-lg">View</button>
                                 </div>
                             `;
                         }
@@ -315,8 +366,11 @@
         let lastLon = null;
         let shareTimer = null;
 
-        // App ပိတ်လိုက်/ဖွင့်လိုက် လုပ်သည့်အခါ Timer ဆက်လက်အလုပ်လုပ်ရန် State Persistence စစ်ဆေးခြင်း
         window.addEventListener('load', () => {
+            let savedTheme = localStorage.getItem('selectedTheme') || 'pink';
+            document.getElementById('themeSelect').value = savedTheme;
+            changeTheme(savedTheme);
+
             let isSharing = localStorage.getItem('isLocationSharing') === 'true';
             if (isSharing) {
                 let shareEndTime = parseInt(localStorage.getItem('shareEndTime') || '0');
@@ -349,7 +403,7 @@
             if (navigator.geolocation) {
                 document.getElementById('status').innerText = "Status: တည်နေရာကို ရှာဖွေနေပါပြီ...";
                 btn.innerText = "Location ရပ်တန့်မည်";
-                btn.classList.replace('bg-pink-500', 'bg-red-500');
+                btn.className = "w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 rounded-xl transition duration-200";
 
                 if (shareTimer) clearTimeout(shareTimer);
 
@@ -382,7 +436,8 @@
             const btn = document.getElementById('shareBtn');
             document.getElementById('status').innerText = "Status: ရပ်တန့်ထားသည်";
             btn.innerText = "Location စတင်မျှဝေမည်";
-            btn.classList.replace('bg-red-500', 'bg-pink-500');
+            btn.className = "w-full btn-theme text-white font-medium py-2.5 rounded-xl transition duration-200";
+            changeTheme(document.getElementById('themeSelect').value);
         }
 
         function handlePosition(position) {
@@ -442,7 +497,23 @@
             }).catch(() => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
         }
 
-        // --- BUBBLE SORTING GAME ---
+        // --- MINI GAMES SWITCHER ---
+        function switchGame(gameType) {
+            document.getElementById('gameBubble').classList.add('hidden');
+            document.getElementById('gameMemory').classList.add('hidden');
+            document.getElementById('gameSnake').classList.add('hidden');
+
+            if (gameType === 'bubble') {
+                document.getElementById('gameBubble').classList.remove('hidden');
+            } else if (gameType === 'memory') {
+                document.getElementById('gameMemory').classList.remove('hidden');
+                initMemoryGame();
+            } else if (gameType === 'snake') {
+                document.getElementById('gameSnake').classList.remove('hidden');
+            }
+        }
+
+        // --- GAME 1: BUBBLE SORTING ---
         let characterArray = [
             { id: 1, size: 2, emoji: "🧸" },
             { id: 2, size: 5, emoji: "🐻" },
@@ -459,8 +530,8 @@
             container.innerHTML = '';
             characterArray.forEach(item => {
                 let div = document.createElement('div');
-                div.className = "flex flex-col items-center justify-center w-14 h-16 bg-white border-2 border-pink-300 rounded-2xl shadow-sm transition-all duration-300";
-                div.innerHTML = `<span class="text-3xl">${item.emoji}</span>`;
+                div.className = "flex flex-col items-center justify-center w-12 h-14 bg-white border border-gray-200 rounded-2xl shadow-sm transition-all duration-300";
+                div.innerHTML = `<span class="text-2xl">${item.emoji}</span>`;
                 container.appendChild(div);
             });
         }
@@ -477,8 +548,6 @@
             
             document.getElementById('sortBtn').disabled = true;
             document.getElementById('resetBtn').disabled = true;
-            document.getElementById('sortBtn').classList.add('opacity-50');
-            document.getElementById('resetBtn').classList.add('opacity-50');
 
             let arr = [...characterArray];
             let len = arr.length;
@@ -488,8 +557,8 @@
                 for (let j = 0; j < len - i - 1; j++) {
                     let nodes = container.children;
                     if (nodes[j] && nodes[j+1]) {
-                        nodes[j].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
-                        nodes[j+1].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
+                        nodes[j].classList.add('bg-gray-200', 'scale-105');
+                        nodes[j+1].classList.add('bg-gray-200', 'scale-105');
                     }
 
                     await new Promise(resolve => setTimeout(resolve, 400));
@@ -504,8 +573,8 @@
                     }
 
                     if (nodes[j] && nodes[j+1]) {
-                        nodes[j].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
-                        nodes[j+1].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
+                        nodes[j].classList.remove('bg-gray-200', 'scale-105');
+                        nodes[j+1].classList.remove('bg-gray-200', 'scale-105');
                     }
                 }
             }
@@ -513,8 +582,128 @@
             isSorting = false;
             document.getElementById('sortBtn').disabled = false;
             document.getElementById('resetBtn').disabled = false;
-            document.getElementById('sortBtn').classList.remove('opacity-50');
-            document.getElementById('resetBtn').classList.remove('opacity-50');
+        }
+
+        // --- GAME 2: MEMORY MATCHING ---
+        const memoryEmojis = ['🐶', '🐱', '🦊', '🐼', '🐶', '🐱', '🦊', '🐼'];
+        let flippedCards = [];
+        let matchedPairs = 0;
+
+        function initMemoryGame() {
+            const grid = document.getElementById('memoryGrid');
+            grid.innerHTML = '';
+            flippedCards = [];
+            matchedPairs = 0;
+
+            let shuffled = [...memoryEmojis].sort(() => Math.random() - 0.5);
+            shuffled.forEach((emoji, idx) => {
+                let card = document.createElement('button');
+                card.className = "h-14 bg-white rounded-xl text-2xl font-bold flex items-center justify-center border shadow-sm transition";
+                card.dataset.emoji = emoji;
+                card.dataset.id = idx;
+                card.innerText = '❓';
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (flippedCards.length < 2 && !card.classList.contains('flipped')) {
+                card.innerText = card.dataset.emoji;
+                card.classList.add('flipped', 'bg-gray-100');
+                flippedCards.push(card);
+
+                if (flippedCards.length === 2) {
+                    if (flippedCards[0].dataset.emoji === flippedCards[1].dataset.emoji) {
+                        matchedPairs++;
+                        flippedCards = [];
+                        if (matchedPairs === 4) {
+                            setTimeout(() => alert("🎉 ဂုဏ်ယူပါတယ်! ကတ်ပြားများအားလုံး ရှာတွေ့သွားပါပြီ!"), 300);
+                        }
+                    } else {
+                        setTimeout(() => {
+                            flippedCards.forEach(c => {
+                                c.innerText = '❓';
+                                c.classList.remove('flipped', 'bg-gray-100');
+                            });
+                            flippedCards = [];
+                        }, 800);
+                    }
+                }
+            }
+        }
+
+        // --- GAME 3: CLASSIC SNAKE GAME ---
+        let snakeCanvas = document.getElementById('snakeCanvas');
+        let ctx = snakeCanvas.getContext('2d');
+        let snake = [];
+        let food = {};
+        let direction = 'RIGHT';
+        let snakeInterval = null;
+        let score = 0;
+
+        function startSnakeGame() {
+            snake = [{x: 100, y: 100}, {x: 80, y: 100}, {x: 60, y: 100}];
+            direction = 'RIGHT';
+            score = 0;
+            document.getElementById('snakeScore').innerText = score;
+            placeFood();
+
+            if (snakeInterval) clearInterval(snakeInterval);
+            snakeInterval = setInterval(updateSnake, 150);
+        }
+
+        function setDirection(dir) {
+            if (dir === 'UP' && direction !== 'DOWN') direction = 'UP';
+            if (dir === 'DOWN' && direction !== 'UP') direction = 'DOWN';
+            if (dir === 'LEFT' && direction !== 'RIGHT') direction = 'LEFT';
+            if (dir === 'RIGHT' && direction !== 'LEFT') direction = 'RIGHT';
+        }
+
+        function placeFood() {
+            food = {
+                x: Math.floor(Math.random() * 12) * 20,
+                y: Math.floor(Math.random() * 10) * 20
+            };
+        }
+
+        function updateSnake() {
+            let head = { ...snake[0] };
+            if (direction === 'RIGHT') head.x += 20;
+            if (direction === 'LEFT') head.x -= 20;
+            if (direction === 'UP') head.y -= 20;
+            if (direction === 'DOWN') head.y += 20;
+
+            // Game Over Collision Checks
+            if (head.x < 0 || head.x >= 240 || head.y < 0 || head.y >= 200 || snake.some(s => s.x === head.x && s.y === head.y)) {
+                clearInterval(snakeInterval);
+                alert(`Game Over! Score: ${score}`);
+                return;
+            }
+
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                document.getElementById('snakeScore').innerText = score;
+                placeFood();
+            } else {
+                snake.pop();
+            }
+
+            drawSnakeGame();
+        }
+
+        function drawSnakeGame() {
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, 240, 200);
+
+            // Draw Food
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(food.x, food.y, 18, 18);
+
+            // Draw Snake
+            ctx.fillStyle = '#10b981';
+            snake.forEach(s => ctx.fillRect(s.x, s.y, 18, 18));
         }
 
         renderBubbles();
