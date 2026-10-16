@@ -25,7 +25,7 @@
 
     <!-- Proximity Alert Box -->
     <div id="alertBox" class="hidden mb-4 bg-red-100 border-2 border-red-400 text-red-700 p-3 rounded-2xl shadow-md text-sm font-bold animate-pulse">
-        🚨 သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!
+        🚨 <span id="alertMessage">သတိပေးချက်</span>
     </div>
 
     <!-- 1. LARGE MAP SECTION -->
@@ -48,6 +48,7 @@
         <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm">
             <p id="status" class="text-pink-800 font-medium">Status: မစတင်ရသေးပါ</p>
             <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
+            <p id="etaText" class="text-xs font-bold text-pink-700 mt-1 hidden"></p>
         </div>
 
         <!-- Time-limited Sharing Timer -->
@@ -65,13 +66,13 @@
         </button>
     </div>
 
-    <!-- 2. NAVIGATION & ROUTE SEARCH -->
+    <!-- 2. NAVIGATION & ROUTE SEARCH (In-App Map Routing) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route (Google Maps)</h2>
+        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
         <div class="space-y-2">
             <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-            <button onclick="openGoogleMapsRoute()" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-xl text-xs font-bold transition">
-                🗺️ Google Maps ဖြင့် လမ်းကြောင်းဖွင့်မည်
+            <button onclick="calculateInAppRoute()" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-xl text-xs font-bold transition">
+                🗺️ လက်ရှိနေရာမှ လမ်းကြောင်းဆွဲမည်
             </button>
         </div>
     </div>
@@ -84,13 +85,13 @@
         </div>
     </div>
 
-    <!-- 4. BUBU & DUDU GAME SECTION -->
+    <!-- 4. BUBBLE SORTING GAME SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
         <div class="flex justify-between items-center mb-2">
-            <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sorting</h2>
+            <h2 class="font-bold text-md text-pink-600">🤎 Bubble Sorting</h2>
             <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
         </div>
-        <p class="text-xs text-gray-500 mb-4">ချစ်စရာ ဝက်ဝံလေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
+        <p class="text-xs text-gray-500 mb-4">ချစ်စရာ အရုပ်လေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
         
         <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
         
@@ -109,17 +110,20 @@
 
     <script>
         let tg = window.Telegram?.WebApp;
-        let telegramUsername = "User";
+        let telegramFullName = "User";
+
         if (tg) {
             tg.expand();
-            // Telegram Username (ရှိလျှင် username သို့မဟုတ် first_name ကို ယူမည်)
-            telegramUsername = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Guest";
-            document.getElementById('username').innerText = telegramUsername;
+            // First Name + Last Name ပေါင်းစပ်ခြင်း
+            let firstName = tg.initDataUnsafe?.user?.first_name || "Guest";
+            let lastName = tg.initDataUnsafe?.user?.last_name || "";
+            telegramFullName = `${firstName} ${lastName}`.trim();
+            document.getElementById('username').innerText = telegramFullName;
         }
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
-        // Map setup with Google Maps tile layer
+        // Map setup
         let map = L.map('map').setView([16.8661, 96.1951], 13);
         L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 20,
@@ -128,9 +132,11 @@
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
+        let routeLine = null; // Map ပေါ်တွင် မျဉ်းကြောင်းဆွဲရန်
         let myCurrentLat = null;
         let myCurrentLon = null;
         let savedPlaces = [];
+        let hasVibrated = false;
 
         function saveCustomPlace() {
             let name = document.getElementById('placeNameInput').value;
@@ -151,24 +157,75 @@
             });
         }
 
-        function openGoogleMapsRoute() {
+        // --- In-App Navigation Route & ETA Calculator ---
+        function calculateInAppRoute() {
             let destText = document.getElementById('destinationInput').value.trim();
             if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
+            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာကို ရယူနေပါသည်..."); return; }
 
-            let destinationParam = encodeURIComponent(destText);
+            let targetLat, targetLon;
             let matched = savedPlaces.find(p => p.name.toLowerCase() === destText.toLowerCase());
-            if(matched) {
-                destinationParam = `${matched.lat},${matched.lon}`;
-            }
 
-            let gmapsUrl = "";
-            if (myCurrentLat && myCurrentLon) {
-                gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${myCurrentLat},${myCurrentLon}&destination=${destinationParam}&travelmode=driving`;
+            if (matched) {
+                targetLat = matched.lat;
+                targetLon = matched.lon;
+                drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
+            } else if (destText.includes(',')) {
+                let parts = destText.split(',');
+                targetLat = parseFloat(parts[0]);
+                targetLon = parseFloat(parts[1]);
+                if (!isNaN(targetLat) && !isNaN(targetLon)) {
+                    drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
+                } else { alert("Lat, Lon ပုံစံ မှားယွင်းနေပါသည်။"); }
             } else {
-                gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destinationParam}`;
+                // Nominatim Geocoding API သုံး၍ သွားလိုသည့် နေရာ၏ Lat, Lon ကို ရှာဖွေခြင်း
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            targetLat = parseFloat(data[0].lat);
+                            targetLon = parseFloat(data[0].lon);
+                            drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
+                        } else {
+                            alert("ထိုနေရာကို မရှာတွေ့ပါ၊ Lat, Lon တိုက်ရိုက် ရိုက်ထည့်ပေးပါ သို့မဟုတ် Saved Place သုံးပါ");
+                        }
+                    })
+                    .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
             }
+        }
 
-            window.open(gmapsUrl, '_blank');
+        // Map ပေါ်တွင် မျဉ်းကြောင်းဆွဲပေးပြီး ရောက်ရှိမည့်အချိန် (ETA) ကို တွက်ချက်ပြသပေးသည့် Function
+        function drawRouteAndETA(lat1, lon1, lat2, lon2) {
+            document.getElementById('mapSection').scrollIntoView({ behavior: 'smooth' });
+
+            if (routeLine) { map.removeLayer(routeLine); }
+
+            // OSRM Public Routing API ဖြင့် မောင်းနှင်မှု လမ်းကြောင်းဆွဲခြင်း
+            fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.routes && data.routes.length > 0) {
+                        let route = data.routes[0];
+                        let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+                        
+                        routeLine = L.polyline(coords, { color: '#db2777', weight: 5, opacity: 0.8 }).addTo(map);
+                        map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+
+                        // ETA တွက်ချက်ခြင်း (Seconds -> Minutes)
+                        let durationMinutes = Math.round(route.duration / 60);
+                        let arrivalTime = new Date(Date.now() + route.duration * 1000);
+                        let timeString = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        let etaDisplay = document.getElementById('etaText');
+                        etaDisplay.innerText = `⏱️ ခန့်မှန်းကြာချိန် - ${durationMinutes} မိနစ် (ရောက်ရှိမည့်အချိန် - ${timeString})`;
+                        etaDisplay.classList.remove('hidden');
+                    }
+                })
+                .catch(() => {
+                    // API မရပါက Straight Polyline ဆွဲပေးခြင်း
+                    routeLine = L.polyline([[lat1, lon1], [lat2, lon2]], { color: '#db2777', weight: 4, dashArray: '5, 10' }).addTo(map);
+                    map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+                });
         }
 
         function fetchAllLocations() {
@@ -178,6 +235,7 @@
                     markersLayer.clearLayers();
                     let listHTML = '';
                     let alertTriggered = false;
+                    let alertUserName = "";
                     let myUserId = tg?.initDataUnsafe?.user?.id?.toString() || "123456";
 
                     data.forEach(loc => {
@@ -188,15 +246,17 @@
                             let distanceText = "";
                             if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
                                 let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
-                                if (distFeet < 500) { alertTriggered = true; }
+                                if (distFeet < 500) { 
+                                    alertTriggered = true; 
+                                    alertUserName = loc.name;
+                                }
                                 distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
                             }
 
-                            // View button ကိုနှိပ်ပါက ကိုယ့်တည်နေရာနှင့် အခြားသူ့တည်နေရာကိုပါ မြင်ရအောင် Zoom ချုံ့ပေးပြီး Map ဆီသို့ scroll တက်သွားမည်
                             listHTML += `
                                 <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs">
                                     <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
-                                    <button onclick="focusBothOnMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-2.5 py-1 rounded-lg">View</button>
+                                    <button onclick="drawLineToUser(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-2.5 py-1 rounded-lg">View</button>
                                 </div>
                             `;
                         }
@@ -205,22 +265,30 @@
                     document.getElementById('userList').innerHTML = listHTML || '<p class="text-xs text-gray-400 text-center py-2">Active sharers မရှိသေးပါ။</p>';
                     
                     let alertBox = document.getElementById('alertBox');
-                    if (alertTriggered) { alertBox.classList.remove('hidden'); } 
-                    else { alertBox.classList.add('hidden'); }
+                    let alertMsg = document.getElementById('alertMessage');
+                    if (alertTriggered) { 
+                        alertMsg.innerText = `${alertUserName} နှင့် ပေ ၅၀၀ အတွင်း နီးစပ်နေပါပြီ`;
+                        alertBox.classList.remove('hidden'); 
+
+                        // ပေ ၅၀၀ အတွင်းရှိပါက 3 စက္ကန့် Vibrate လုပ်ရန်
+                        if (!hasVibrated && navigator.vibrate) {
+                            navigator.vibrate(3000);
+                            hasVibrated = true;
+                        }
+                    } else { 
+                        alertBox.classList.add('hidden'); 
+                        hasVibrated = false;
+                    }
                 })
                 .catch(err => console.log("Error:", err));
         }
 
-        // Map ဆီသို့ ပြန်တက်သွားပြီး နှစ်ဦးသား တည်နေရာကို တစ်ပြိုင်တည်း မြင်ရအောင် Zoom ချုံ့ပေးသည့် function
-        function focusBothOnMap(targetLat, targetLon) {
+        // Active Sharer ၏ View ကိုနှိပ်လျှင် ကိုယ်နှင့် ထိုသူ့ကြား မျဉ်းကြောင်းဆွဲပြခြင်း
+        function drawLineToUser(targetLat, targetLon) {
             document.getElementById('mapSection').scrollIntoView({ behavior: 'smooth' });
-            
+
             if (myCurrentLat !== null && myCurrentLon !== null) {
-                let bounds = L.latLngBounds(
-                    [myCurrentLat, myCurrentLon],
-                    [targetLat, targetLon]
-                );
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
             } else {
                 map.setView([targetLat, targetLon], 16);
             }
@@ -234,11 +302,10 @@
         let lastLon = null;
         let shareTimer = null;
 
-        // LocalStorage ကို အသုံးပြု၍ Telegram App ကို ပိတ်လိုက်သော်လည်း Background တွင် Location ဆက်လက် Share နိုင်စေရန် စီစဉ်ခြင်း
         window.addEventListener('load', () => {
             let isSharing = localStorage.getItem('isLocationSharing') === 'true';
             if (isSharing) {
-                startWatchingLocation(false); // အစကတည်းက ဖွင့်ထားပြီးသားဆိုရင် ဆက် run မည်
+                startWatchingLocation(false);
             }
         });
 
@@ -296,7 +363,7 @@
             myCurrentLon = lon;
 
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
-            
+
             if (lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
                 if (distanceInFeet >= 100) {
@@ -327,7 +394,7 @@
         function sendToGAS(lat, lon, statusScore = "Active") {
             document.getElementById('status').innerText = statusScore === "Active" ? "Status: Google Sheet သို့ ပို့နေသည်..." : "Status: မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ";
             let userId = tg?.initDataUnsafe?.user?.id || "123456";
-            let userName = telegramUsername; // Telegram Username ကို ပေးပို့မည်
+            let userName = telegramFullName; 
 
             fetch(GAS_URL, {
                 method: "POST",
@@ -340,13 +407,13 @@
             }).catch(err => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
         }
 
-        // --- BUBU & DUDU SORTING GAME (STCKERS ONLY - NO NUMBERS) ---
+        // --- BUBBLE SORTING GAME ---
         let characterArray = [
-            { id: 1, size: 2, emoji: "🧸", label: "Small" },
-            { id: 2, size: 5, emoji: "🐻", label: "Medium" },
-            { id: 3, size: 1, emoji: "🤎", label: "Tiny" },
-            { id: 4, size: 8, emoji: "🐼", label: "Large" },
-            { id: 5, size: 3, emoji: "🧸", label: "Normal" }
+            { id: 1, size: 2, emoji: "🧸" },
+            { id: 2, size: 5, emoji: "🐻" },
+            { id: 3, size: 1, emoji: "🤎" },
+            { id: 4, size: 8, emoji: "🐼" },
+            { id: 5, size: 3, emoji: "🧸" }
         ];
 
         function renderBubbles() {
@@ -356,7 +423,6 @@
             characterArray.forEach(item => {
                 let div = document.createElement('div');
                 div.className = "flex flex-col items-center justify-center w-14 h-16 bg-white border-2 border-pink-300 rounded-2xl shadow-sm transition-all duration-300";
-                // ဂဏန်းများဖြုတ်ပြီး Sticker (Emoji) ကိုသာ ကြီးမားစွာပြသထားသည်
                 div.innerHTML = `<span class="text-3xl">${item.emoji}</span>`;
                 container.appendChild(div);
             });
