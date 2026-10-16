@@ -13,14 +13,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
         body { font-family: 'Pyidaungsu', sans-serif; transition: background-color 0.3s; }
-        #map { height: 500px; width: 100%; border-radius: 1rem; }
+        #map { height: 480px; width: 100%; border-radius: 1rem; }
     </style>
 </head>
-<body id="appBody" class="text-gray-800 p-4 max-w-md mx-auto pb-10 bg-pink-50">
+<body id="appBody" class="text-gray-800 p-4 max-w-md mx-auto pb-10 bg-pink-100">
     
     <!-- App Header & Theme Selector -->
     <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm border border-theme">
-        <h1 class="font-bold text-lg text-theme">📍 Live Locater</h1>
+        <h1 id="headerTitle" class="font-bold text-lg text-pink-700">📍 Live Locater</h1>
         <div class="flex items-center gap-2">
             <!-- Theme Selector -->
             <select id="themeSelect" onchange="changeTheme(this.value)" class="text-xs border rounded-lg p-1 bg-gray-50 outline-none">
@@ -28,7 +28,7 @@
                 <option value="mint">🌿 Mint Green</option>
                 <option value="ocean">🌊 Ocean Blue</option>
             </select>
-            <span id="username" class="text-xs bg-theme-light text-theme px-2 py-1 rounded-full font-bold">User</span>
+            <span id="username" class="text-xs bg-pink-200 text-pink-800 px-2 py-1 rounded-full font-bold">User</span>
         </div>
     </div>
 
@@ -39,7 +39,7 @@
 
     <!-- 1. LARGE MAP SECTION -->
     <div id="mapSection" class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
-        <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
+        <h2 class="font-bold text-md mb-2 flex items-center gap-2 text-gray-700">🗺️ Live Interactive Map</h2>
 
         <div class="mb-3 border border-theme overflow-hidden shadow-inner">
             <div id="map"></div>
@@ -48,21 +48,21 @@
         <!-- Custom Places -->
         <div class="mb-3">
             <div class="flex gap-2">
-                <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border p-2 rounded-xl text-xs outline-none focus:border-theme">
-                <button onclick="saveCustomPlace()" class="btn-theme text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">📌 နေရာမှတ်မည်</button>
+                <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border p-2 rounded-xl text-xs outline-none focus:border-pink-500">
+                <button onclick="saveCustomPlace()" id="savePlaceBtn" class="bg-pink-600 hover:bg-pink-700 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition">📌 နေရာမှတ်မည်</button>
             </div>
             <div id="savedPlacesList" class="flex gap-2 overflow-x-auto mt-2 text-xs"></div>
         </div>
 
-        <div class="bg-theme-light p-3 rounded-xl mb-3 text-sm">
-            <p id="status" class="text-theme font-medium">Status: မစတင်ရသေးပါ</p>
-            <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
-            <p id="etaText" class="text-xs font-bold text-theme mt-1 hidden"></p>
+        <div id="statusBox" class="bg-pink-100 p-3 rounded-xl mb-3 text-sm">
+            <p id="status" class="text-pink-900 font-bold">Status: မစတင်ရသေးပါ</p>
+            <p id="coords" class="text-xs text-gray-600 mt-1">Lat: -, Lon: -</p>
+            <p id="etaText" class="text-xs font-bold text-pink-800 mt-1 hidden"></p>
         </div>
 
         <!-- Time-limited Sharing Timer -->
-        <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
-            <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
+        <div class="flex items-center justify-between mb-3 bg-gray-100 p-2 rounded-xl text-xs">
+            <span class="text-gray-700 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
             <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
                 <option value="1">၁ နာရီ (1 hr)</option>
                 <option value="2">၂ နာရီ (2 hrs)</option>
@@ -71,17 +71,17 @@
             </select>
         </div>
 
-        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full btn-theme text-white font-medium py-2.5 rounded-xl transition duration-200">
+        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-medium py-2.5 rounded-xl transition duration-200">
             Location စတင်မျှဝေမည်
         </button>
     </div>
 
     <!-- 2. NAVIGATION & ROUTE -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
-        <h2 class="font-bold text-md mb-2 text-theme">🧭 Navigation & Route</h2>
+        <h2 class="font-bold text-md mb-2 text-gray-700">🧭 Navigation & Route</h2>
         <div class="space-y-2">
-            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border p-2 rounded-xl text-xs outline-none focus:border-theme">
-            <button onclick="calculateInAppRoute()" class="w-full btn-theme text-white py-2 rounded-xl text-xs font-bold transition">
+            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border p-2 rounded-xl text-xs outline-none focus:border-pink-500">
+            <button onclick="calculateInAppRoute()" id="routeBtn" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-xl text-xs font-bold transition">
                 🗺️ လက်ရှိနေရာမှ လမ်းကြောင်းဆွဲမည်
             </button>
         </div>
@@ -89,7 +89,7 @@
 
     <!-- 3. ACTIVE USERS LIST SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-theme">
-        <h2 class="font-bold text-md mb-2 text-theme">👥 Active Sharers List</h2>
+        <h2 class="font-bold text-md mb-2 text-gray-700">👥 Active Sharers List</h2>
         <div id="userList" class="space-y-2 max-h-40 overflow-y-auto">
             <p class="text-xs text-gray-400 text-center py-2">Location ဖွင့်ထားသူများ ရှာဖွေနေသည်...</p>
         </div>
@@ -98,7 +98,7 @@
     <!-- 4. MINI GAMES SECTION (3 Games Included) -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-theme">
         <div class="flex justify-between items-center mb-3">
-            <h2 class="font-bold text-md text-theme">🎮 Mini Games Zone</h2>
+            <h2 class="font-bold text-md text-gray-700">🎮 Mini Games Zone</h2>
             <select id="gameSelect" onchange="switchGame(this.value)" class="text-xs border rounded-lg p-1 bg-gray-50 outline-none">
                 <option value="bubble">🤎 Bubble Sorting</option>
                 <option value="memory">🧠 Memory Matching</option>
@@ -109,24 +109,24 @@
         <!-- GAME 1: BUBBLE SORTING -->
         <div id="gameBubble">
             <p class="text-xs text-gray-500 mb-3">အရုပ်လေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
-            <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-20 bg-theme-light rounded-xl p-2 overflow-x-auto"></div>
+            <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-20 bg-pink-100 rounded-xl p-2 overflow-x-auto"></div>
             <div class="flex gap-2">
-                <button onclick="startBubbleSort()" id="sortBtn" class="flex-1 btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Start Sorting</button>
-                <button onclick="resetGame()" id="resetBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition text-xs">Reset</button>
+                <button onclick="startBubbleSort()" id="sortBtn" class="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 rounded-xl transition text-xs">Start Sorting</button>
+                <button onclick="resetGame()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 rounded-xl transition text-xs">Reset</button>
             </div>
         </div>
 
         <!-- GAME 2: MEMORY CARD MATCHING -->
         <div id="gameMemory" class="hidden">
             <p class="text-xs text-gray-500 mb-3">တူညီသော Emoji များ မှတ်မိအောင် ရှာဖွေပါ!</p>
-            <div id="memoryGrid" class="grid grid-cols-4 gap-2 mb-4 bg-theme-light p-3 rounded-xl"></div>
-            <button onclick="initMemoryGame()" class="w-full btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Reset Game</button>
+            <div id="memoryGrid" class="grid grid-cols-4 gap-2 mb-4 bg-pink-100 p-3 rounded-xl"></div>
+            <button onclick="initMemoryGame()" id="memoryResetBtn" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 rounded-xl transition text-xs">Reset Game</button>
         </div>
 
         <!-- GAME 3: CLASSIC SNAKE -->
         <div id="gameSnake" class="hidden text-center">
-            <p class="text-xs text-gray-500 mb-2">Score: <span id="snakeScore" class="font-bold text-theme">0</span></p>
-            <canvas id="snakeCanvas" width="240" height="200" class="mx-auto bg-gray-900 rounded-xl mb-3 border border-theme"></canvas>
+            <p class="text-xs text-gray-500 mb-2">Score: <span id="snakeScore" class="font-bold text-pink-700">0</span></p>
+            <canvas id="snakeCanvas" width="240" height="200" class="mx-auto bg-gray-900 rounded-xl mb-3 border"></canvas>
             
             <!-- Mobile D-Pad Controls -->
             <div class="grid grid-cols-3 gap-1 w-36 mx-auto mb-3">
@@ -137,7 +137,7 @@
                 <button onclick="setDirection('DOWN')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">⬇️</button>
                 <button onclick="setDirection('RIGHT')" class="bg-gray-200 p-2 rounded-lg font-bold text-xs">➡️</button>
             </div>
-            <button onclick="startSnakeGame()" class="w-full btn-theme text-white font-medium py-2 rounded-xl transition text-xs">Start Snake Game</button>
+            <button onclick="startSnakeGame()" id="snakeStartBtn" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 rounded-xl transition text-xs">Start Snake Game</button>
         </div>
     </div>
 
@@ -158,28 +158,64 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
-        // --- Theme Switcher Logic ---
+        // --- Vibrant & Enhanced Theme Configurations ---
         const themes = {
-            pink: { bodyBg: 'bg-pink-50', text: 'text-pink-600', bgLight: 'bg-pink-50', btn: 'bg-pink-500 hover:bg-pink-600', border: 'border-pink-200' },
-            mint: { bodyBg: 'bg-emerald-50', text: 'text-emerald-600', bgLight: 'bg-emerald-50', btn: 'bg-emerald-600 hover:bg-emerald-700', border: 'border-emerald-200' },
-            ocean: { bodyBg: 'bg-sky-50', text: 'text-sky-600', bgLight: 'bg-sky-50', btn: 'bg-sky-600 hover:bg-sky-700', border: 'border-sky-200' }
+            pink: {
+                bodyBg: 'bg-pink-100',
+                headerText: 'text-pink-700',
+                userBadge: 'bg-pink-200 text-pink-800',
+                statusBox: 'bg-pink-100 text-pink-900',
+                etaText: 'text-pink-800',
+                btnBg: 'bg-pink-600 hover:bg-pink-700 text-white',
+                border: 'border-pink-300',
+                gameBg: 'bg-pink-100'
+            },
+            mint: {
+                bodyBg: 'bg-emerald-100',
+                headerText: 'text-emerald-700',
+                userBadge: 'bg-emerald-200 text-emerald-800',
+                statusBox: 'bg-emerald-100 text-emerald-900',
+                etaText: 'text-emerald-800',
+                btnBg: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+                border: 'border-emerald-300',
+                gameBg: 'bg-emerald-100'
+            },
+            ocean: {
+                bodyBg: 'bg-sky-100',
+                headerText: 'text-sky-700',
+                userBadge: 'bg-sky-200 text-sky-800',
+                statusBox: 'bg-sky-100 text-sky-900',
+                etaText: 'text-sky-800',
+                btnBg: 'bg-sky-600 hover:bg-sky-700 text-white',
+                border: 'border-sky-300',
+                gameBg: 'bg-sky-100'
+            }
         };
 
         function changeTheme(themeName) {
-            const currentTheme = themes[themeName] || themes.pink;
-            document.getElementById('appBody').className = `text-gray-800 p-4 max-w-md mx-auto pb-10 ${currentTheme.bodyBg}`;
+            const t = themes[themeName] || themes.pink;
+            document.getElementById('appBody').className = `text-gray-800 p-4 max-w-md mx-auto pb-10 ${t.bodyBg}`;
+            document.getElementById('headerTitle').className = `font-bold text-lg ${t.headerText}`;
+            document.getElementById('username').className = `text-xs px-2 py-1 rounded-full font-bold ${t.userBadge}`;
+            document.getElementById('statusBox').className = `p-3 rounded-xl mb-3 text-sm ${t.statusBox}`;
+            document.getElementById('etaText').className = `text-xs font-bold mt-1 hidden ${t.etaText}`;
+            document.getElementById('bubbleContainer').className = `flex justify-center items-center gap-2 mb-4 h-20 rounded-xl p-2 overflow-x-auto ${t.gameBg}`;
+            document.getElementById('memoryGrid').className = `grid grid-cols-4 gap-2 mb-4 p-3 rounded-xl ${t.gameBg}`;
 
-            document.querySelectorAll('.text-theme').forEach(el => {
-                el.className = el.className.replace(/text-(pink|emerald|sky)-\d+/, currentTheme.text);
+            // Update all theme-controlled buttons
+            const themeButtons = [
+                'savePlaceBtn', 'shareBtn', 'routeBtn', 'sortBtn', 'memoryResetBtn', 'snakeStartBtn'
+            ];
+            themeButtons.forEach(id => {
+                let el = document.getElementById(id);
+                if (el && !el.classList.contains('bg-red-500')) {
+                    el.className = el.className.replace(/bg-(pink|emerald|sky)-\d+\s+hover:bg-(pink|emerald|sky)-\d+/, t.btnBg.split(' ')[0] + ' ' + t.btnBg.split(' ')[1]);
+                }
             });
-            document.querySelectorAll('.btn-theme').forEach(el => {
-                el.className = el.className.replace(/bg-(pink|emerald|sky)-\d+\s+hover:bg-(pink|emerald|sky)-\d+/, currentTheme.btn);
-            });
-            document.querySelectorAll('.bg-theme-light').forEach(el => {
-                el.className = el.className.replace(/bg-(pink|emerald|sky)-50/, currentTheme.bgLight);
-            });
+
+            // Update borders
             document.querySelectorAll('.border-theme').forEach(el => {
-                el.className = el.className.replace(/border-(pink|emerald|sky)-\d+/, currentTheme.border);
+                el.className = el.className.replace(/border-(pink|emerald|sky)-\d+/, t.border);
             });
 
             localStorage.setItem('selectedTheme', themeName);
@@ -215,7 +251,7 @@
             let container = document.getElementById('savedPlacesList');
             container.innerHTML = '';
             savedPlaces.forEach(p => {
-                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16); map.invalidateSize();" class="bg-gray-100 text-gray-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
+                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16); map.invalidateSize();" class="bg-white text-gray-700 border px-2 py-1 rounded-lg whitespace-nowrap font-bold shadow-sm">📌 ${p.name}</button>`;
             });
         }
 
@@ -315,13 +351,16 @@
                                     alertTriggered = true; 
                                     alertUserName = loc.name;
                                 }
-                                distanceText = `<span class="text-xs font-bold text-gray-500">(${distFeet.toFixed(0)} ft away)</span>`;
+                                distanceText = `<span class="text-xs font-bold text-gray-600">(${distFeet.toFixed(0)} ft away)</span>`;
                             }
 
+                            let currentTheme = document.getElementById('themeSelect').value;
+                            let viewBtnBg = currentTheme === 'mint' ? 'bg-emerald-600 hover:bg-emerald-700' : (currentTheme === 'ocean' ? 'bg-sky-600 hover:bg-sky-700' : 'bg-pink-600 hover:bg-pink-700');
+
                             listHTML += `
-                                <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl text-xs">
+                                <div class="flex items-center justify-between bg-white border p-2.5 rounded-xl text-xs shadow-sm">
                                     <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
-                                    <button onclick="drawLineToUser(${loc.latitude}, ${loc.longitude})" class="btn-theme text-white px-2.5 py-1 rounded-lg">View</button>
+                                    <button onclick="drawLineToUser(${loc.latitude}, ${loc.longitude})" class="${viewBtnBg} text-white px-2.5 py-1 rounded-lg transition">View</button>
                                 </div>
                             `;
                         }
@@ -403,7 +442,7 @@
             if (navigator.geolocation) {
                 document.getElementById('status').innerText = "Status: တည်နေရာကို ရှာဖွေနေပါပြီ...";
                 btn.innerText = "Location ရပ်တန့်မည်";
-                btn.className = "w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 rounded-xl transition duration-200";
+                btn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 rounded-xl transition duration-200";
 
                 if (shareTimer) clearTimeout(shareTimer);
 
@@ -436,8 +475,9 @@
             const btn = document.getElementById('shareBtn');
             document.getElementById('status').innerText = "Status: ရပ်တန့်ထားသည်";
             btn.innerText = "Location စတင်မျှဝေမည်";
-            btn.className = "w-full btn-theme text-white font-medium py-2.5 rounded-xl transition duration-200";
-            changeTheme(document.getElementById('themeSelect').value);
+            
+            let currentTheme = document.getElementById('themeSelect').value;
+            changeTheme(currentTheme);
         }
 
         function handlePosition(position) {
@@ -530,7 +570,7 @@
             container.innerHTML = '';
             characterArray.forEach(item => {
                 let div = document.createElement('div');
-                div.className = "flex flex-col items-center justify-center w-12 h-14 bg-white border border-gray-200 rounded-2xl shadow-sm transition-all duration-300";
+                div.className = "flex flex-col items-center justify-center w-12 h-14 bg-white border border-gray-300 rounded-2xl shadow-sm transition-all duration-300";
                 div.innerHTML = `<span class="text-2xl">${item.emoji}</span>`;
                 container.appendChild(div);
             });
@@ -547,7 +587,6 @@
             isSorting = true;
             
             document.getElementById('sortBtn').disabled = true;
-            document.getElementById('resetBtn').disabled = true;
 
             let arr = [...characterArray];
             let len = arr.length;
@@ -557,8 +596,8 @@
                 for (let j = 0; j < len - i - 1; j++) {
                     let nodes = container.children;
                     if (nodes[j] && nodes[j+1]) {
-                        nodes[j].classList.add('bg-gray-200', 'scale-105');
-                        nodes[j+1].classList.add('bg-gray-200', 'scale-105');
+                        nodes[j].classList.add('bg-gray-300', 'scale-105');
+                        nodes[j+1].classList.add('bg-gray-300', 'scale-105');
                     }
 
                     await new Promise(resolve => setTimeout(resolve, 400));
@@ -573,15 +612,14 @@
                     }
 
                     if (nodes[j] && nodes[j+1]) {
-                        nodes[j].classList.remove('bg-gray-200', 'scale-105');
-                        nodes[j+1].classList.remove('bg-gray-200', 'scale-105');
+                        nodes[j].classList.remove('bg-gray-300', 'scale-105');
+                        nodes[j+1].classList.remove('bg-gray-300', 'scale-105');
                     }
                 }
             }
 
             isSorting = false;
             document.getElementById('sortBtn').disabled = false;
-            document.getElementById('resetBtn').disabled = false;
         }
 
         // --- GAME 2: MEMORY MATCHING ---
@@ -610,7 +648,7 @@
         function flipCard(card) {
             if (flippedCards.length < 2 && !card.classList.contains('flipped')) {
                 card.innerText = card.dataset.emoji;
-                card.classList.add('flipped', 'bg-gray-100');
+                card.classList.add('flipped', 'bg-gray-200');
                 flippedCards.push(card);
 
                 if (flippedCards.length === 2) {
@@ -624,7 +662,7 @@
                         setTimeout(() => {
                             flippedCards.forEach(c => {
                                 c.innerText = '❓';
-                                c.classList.remove('flipped', 'bg-gray-100');
+                                c.classList.remove('flipped', 'bg-gray-200');
                             });
                             flippedCards = [];
                         }, 800);
@@ -674,7 +712,6 @@
             if (direction === 'UP') head.y -= 20;
             if (direction === 'DOWN') head.y += 20;
 
-            // Game Over Collision Checks
             if (head.x < 0 || head.x >= 240 || head.y < 0 || head.y >= 200 || snake.some(s => s.x === head.x && s.y === head.y)) {
                 clearInterval(snakeInterval);
                 alert(`Game Over! Score: ${score}`);
@@ -697,12 +734,11 @@
             ctx.fillStyle = '#111827';
             ctx.fillRect(0, 0, 240, 200);
 
-            // Draw Food
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(food.x, food.y, 18, 18);
 
-            // Draw Snake
             ctx.fillStyle = '#10b981';
+            snake.s?.forEach ? snake.forEach(s => ctx.fillRect(s.x, s.y, 18, 18)) : null;
             snake.forEach(s => ctx.fillRect(s.x, s.y, 18, 18));
         }
 
