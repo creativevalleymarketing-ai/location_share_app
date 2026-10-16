@@ -17,7 +17,6 @@
     </style>
 </head>
 <body class="text-gray-800 p-4 max-w-md mx-auto pb-10">
-
     <!-- App Header -->
     <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm">
         <h1 class="font-bold text-lg text-pink-600">📍 Live Locater App</h1>
@@ -29,7 +28,7 @@
         🚨 သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!
     </div>
 
-    <!-- 1. LARGE MAP SECTION (Google Maps Default Style via Google Mutant or Standard Tiles) -->
+    <!-- 1. LARGE MAP SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
         
@@ -37,7 +36,7 @@
             <div id="map"></div>
         </div>
 
-        <!-- Custom Places (User Defined) -->
+        <!-- Custom Places -->
         <div class="mb-3">
             <div class="flex gap-2">
                 <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
@@ -51,7 +50,7 @@
             <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
         </div>
 
-        <!-- Time-limited Sharing Timer (1 hr, 2 hrs, 5 hrs) -->
+        <!-- Time-limited Sharing Timer -->
         <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
             <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
             <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
@@ -66,12 +65,14 @@
         </button>
     </div>
 
-    <!-- 2. NAVIGATION & ROUTE SEARCH (Built-in Map Routing) -->
+    <!-- 2. NAVIGATION & ROUTE SEARCH (Google Maps Direction Integration) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
+        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route (Google Maps)</h2>
         <div class="space-y-2">
             <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-            <button onclick="searchRoute()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold">လက်ရှိနေရာမှ လမ်းကြောင်းပြမည်</button>
+            <button onclick="openGoogleMapsRoute()" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-xl text-xs font-bold transition">
+                🗺️ Google Maps ဖြင့် လမ်းကြောင်းဖွင့်မည်
+            </button>
         </div>
     </div>
 
@@ -90,9 +91,9 @@
             <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
         </div>
         <p class="text-xs text-gray-500 mb-4">ချစ်စရာ ဝက်ဝံလေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
-
+        
         <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
-
+        
         <div class="flex gap-2">
             <button onclick="startBubbleSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
                 Start Sorting
@@ -105,9 +106,6 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Routing Machine for Built-in Map Routing -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
         let tg = window.Telegram?.WebApp;
@@ -118,7 +116,7 @@
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
-        // Map setup with Google Maps standard tile look
+        // Map setup with Google Maps tile layer
         let map = L.map('map').setView([16.8661, 96.1951], 13);
         L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 20,
@@ -127,7 +125,6 @@
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
-        let routingControl = null;
         let myCurrentLat = null;
         let myCurrentLon = null;
         let savedPlaces = [];
@@ -147,39 +144,31 @@
             let container = document.getElementById('savedPlacesList');
             container.innerHTML = '';
             savedPlaces.forEach(p => {
-                let btn = document.createElement('button1');
                 container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16)" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
             });
         }
 
-        function searchRoute() {
-            let destText = document.getElementById('destinationInput').value;
+        // --- Google Maps Navigation Route Function ---
+        function openGoogleMapsRoute() {
+            let destText = document.getElementById('destinationInput').value.trim();
             if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
-            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာကို ရယူနေပါသည်..."); return; }
 
-            // Check if saved place matches
-            let targetLat = myCurrentLat + 0.01; // Default mock distance if text search
-            let targetLon = myCurrentLon + 0.01;
-
+            let destinationParam = encodeURIComponent(destText);
+            
+            // Check if user entered a saved custom place
             let matched = savedPlaces.find(p => p.name.toLowerCase() === destText.toLowerCase());
             if(matched) {
-                targetLat = matched.lat;
-                targetLon = matched.lon;
+                destinationParam = `${matched.lat},${matched.lon}`;
             }
 
-            if(routingControl) {
-                map.removeControl(routingControl);
+            let gmapsUrl = "";
+            if (myCurrentLat && myCurrentLon) {
+                gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${myCurrentLat},${myCurrentLon}&destination=${destinationParam}&travelmode=driving`;
+            } else {
+                gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destinationParam}`;
             }
 
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(myCurrentLat, myCurrentLon),
-                    L.latLng(targetLat, targetLon)
-                ],
-                routeWhileDragging: false,
-                lineOptions: { styles: [{ color: '#db2777', weight: 4 }] },
-                createMarker: function() { return null; }
-            }).addTo(map);
+            window.open(gmapsUrl, '_blank');
         }
 
         function fetchAllLocations() {
@@ -239,7 +228,6 @@
                     btn.innerText = "Location ရပ်တန့်မည်";
                     btn.classList.replace('bg-pink-500', 'bg-red-500');
 
-                    // Time-limited sharing auto stop (1 hr, 2 hrs, 5 hrs)
                     let hours = parseInt(document.getElementById('shareDuration').value);
                     shareTimer = setTimeout(() => {
                         toggleLocationSharing();
@@ -273,7 +261,6 @@
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
             map.setView([lat, lon], 15);
 
-            // Backend-only distance throttling (100 ft move threshold)
             if (lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
                 if (distanceInFeet >= 100) {
@@ -317,7 +304,7 @@
             }).catch(err => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
         }
 
-        // --- BUBU & DUDU SORTING GAME ---
+        // --- BUBU & DUDU SORTING GAME (FIXED) ---
         let characterArray = [
             { id: 1, size: 2, emoji: "🧸", label: "Small" },
             { id: 2, size: 5, emoji: "🐻", label: "Medium" },
@@ -333,7 +320,8 @@
             characterArray.forEach(item => {
                 let div = document.createElement('div');
                 div.className = "flex flex-col items-center justify-center w-14 h-16 bg-white border-2 border-pink-300 rounded-2xl shadow-sm transition-all duration-300";
-                div.innerHTML = `<span class="text-2xl">item.emoji</span><spanclass="text-xsfont-boldtext-pink-600">{item.size}</span>`;
+                // Fixed syntax below using ${item.emoji} and properly spaced CSS classes
+                div.innerHTML = `<span class="text-2xl">${item.emoji}</span><span class="text-xs font-bold text-pink-600">${item.size}</span>`;
                 container.appendChild(div);
             });
         }
@@ -353,6 +341,7 @@
                     let nodes = container.children;
                     nodes[j].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
                     nodes[j+1].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
+                    
                     await new Promise(resolve => setTimeout(resolve, 500));
 
                     if (arr[j].size > arr[j + 1].size) {
@@ -374,4 +363,3 @@
     </script>
 </body>
 </html>
-
