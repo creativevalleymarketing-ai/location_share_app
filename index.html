@@ -51,13 +51,14 @@
             <p id="etaText" class="text-xs font-bold text-pink-700 mt-1 hidden"></p>
         </div>
 
-        <!-- Time-limited Sharing Timer -->
+        <!-- Time-limited Sharing Timer (Added 10 Hours Option) -->
         <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
             <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
             <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
                 <option value="1">၁ နာရီ (1 hr)</option>
                 <option value="2">၂ နာရီ (2 hrs)</option>
                 <option value="5">၅ နာရီ (5 hrs)</option>
+                <option value="10">၁၀ နာရီ (10 hrs)</option>
             </select>
         </div>
 
@@ -177,9 +178,7 @@
                     drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
                 } else { alert("Lat, Lon ပုံစံ မှားယွင်းနေပါသည်။"); }
             } else {
-                // Nominatim API ကို ရန်ကုန်မြို့/မြန်မာနိုင်ငံနယ်နိမိတ် (Viewbox & Boundingbox) အထူးပြု၍ ရှာဖွေစေခြင်း
-                // Yangon bounds approximate: lon min/max: 96.0 - 96.3, lat min/max: 16.7 - 17.0 (Myanmar country-wide bounding box can also be used)
-                let viewbox = "94.5,16.2,97.8,17.5"; // Yangon Region / Greater Yangon area viewbox (lon1,lat1,lon2,lat2)
+                let viewbox = "94.5,16.2,97.8,17.5"; 
                 let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}&viewbox=${viewbox}&bounded=1`;
 
                 fetch(searchUrl, {
@@ -192,7 +191,6 @@
                         targetLon = parseFloat(data[0].lon);
                         drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
                     } else {
-                        // အကယ်၍ အထက်ပါ Area ထဲ မတွေ့ပါက တစ်နိုင်ငံလုံးအတိုင်းအတာဖြင့် ထပ်မံရှာဖွေပေးခြင်း
                         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText + ', Myanmar')}`, {
                             headers: { 'User-Agent': 'LiveLocaterApp/1.0' }
                         })
@@ -309,7 +307,6 @@
             }
         }
 
-        // Active Sharers များကိုသာ အမြဲစောင့်ကြည့်ရန် (Location Sharing ကို ပိတ်ထားလျှင်တောင် သူများနေရာကို ကြည့်နိုင်ရန်)
         setInterval(fetchAllLocations, 10000);
         fetchAllLocations();
 
@@ -318,18 +315,36 @@
         let lastLon = null;
         let shareTimer = null;
 
-        // အရေးကြီးချက် - App စဖွင့်ချိန် (load လုပ်ချိန်) တွင် Location အလိုအလျောက် မပွင့်စေရန် localStorage စစ်ဆေးမှုကို ဖြုတ်ထားလိုက်ပါပြီ။
-        // ခလုတ်နှိပ်မှသာ start ဖြစ်ပါမည်။
+        // App ပိတ်လိုက်/ဖွင့်လိုက် လုပ်သည့်အခါ Timer ဆက်လက်အလုပ်လုပ်ရန် State Persistence စစ်ဆေးခြင်း
+        window.addEventListener('load', () => {
+            let isSharing = localStorage.getItem('isLocationSharing') === 'true';
+            if (isSharing) {
+                let shareEndTime = parseInt(localStorage.getItem('shareEndTime') || '0');
+                let remainingTime = shareEndTime - Date.now();
+                if (remainingTime > 0) {
+                    startWatchingLocation(false, remainingTime);
+                } else {
+                    stopLocationSharing();
+                }
+            }
+        });
 
         function toggleLocationSharing() {
             if (watchId === null) {
-                startWatchingLocation(true);
+                let hours = parseInt(document.getElementById('shareDuration').value);
+                let durationMs = hours * 3600 * 1000;
+                let endTime = Date.now() + durationMs;
+
+                localStorage.setItem('isLocationSharing', 'true');
+                localStorage.setItem('shareEndTime', endTime.toString());
+                
+                startWatchingLocation(true, durationMs);
             } else {
                 stopLocationSharing();
             }
         }
 
-        function startWatchingLocation(isNewStart = true) {
+        function startWatchingLocation(isNewStart = true, durationMs = 0) {
             const btn = document.getElementById('shareBtn');
             if (navigator.geolocation) {
                 document.getElementById('status').innerText = "Status: တည်နေရာကို ရှာဖွေနေပါပြီ...";
@@ -338,12 +353,11 @@
 
                 if (shareTimer) clearTimeout(shareTimer);
 
-                if (isNewStart) {
-                    let hours = parseInt(document.getElementById('shareDuration').value);
+                if (durationMs > 0) {
                     shareTimer = setTimeout(() => {
                         stopLocationSharing();
                         alert("သတ်မှတ်ထားသော အချိန်ပြည့်သွားပါပြီ။ Location မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ။");
-                    }, hours * 3600 * 1000);
+                    }, durationMs);
                 }
 
                 watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
@@ -359,6 +373,9 @@
                 navigator.geolocation.clearWatch(watchId);
             }
             if (shareTimer) clearTimeout(shareTimer);
+            localStorage.removeItem('isLocationSharing');
+            localStorage.removeItem('shareEndTime');
+            
             sendToGAS(lastLat || 16.8661, lastLon || 96.1951, "Stopped");
 
             watchId = null;
