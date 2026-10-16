@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <!-- 4. BUBU & DUDU STICKER GAME (NO NUMBERS) -->
+    <!-- 4. BUBU & DUDU STICKER GAME -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
         <div class="flex justify-between items-center mb-2">
             <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sticker Sorting</h2>
@@ -116,7 +116,7 @@
             document.getElementById('username').innerText = tg.initDataUnsafe?.user?.first_name || "Guest";
         }
 
-        // ⚠️ ကိုယ်ပိုင် Google Apps Script Web App URL ဖြင့် အစားထိုးပါ
+        // ⚠️ မိမိ၏ GAS Web App URL ဖြင့် အစားထိုးပါ
         const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
 
         let map = L.map('map').setView([16.8661, 96.1951], 13);
@@ -194,6 +194,7 @@
             }).addTo(map);
         }
 
+        // Server မှ Active Sharers Data အားလုံးကို ဆွဲယူမည့် Function
         function fetchAllLocations() {
             fetch(GAS_URL)
                 .then(res => res.json())
@@ -203,26 +204,28 @@
                     let alertTriggered = false;
                     let myUserId = tg?.initDataUnsafe?.user?.id?.toString() || "123456";
 
-                    data.forEach(loc => {
-                        if (loc.latitude && loc.longitude) {
-                            let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b>`);
-                            markersLayer.addLayer(marker);
+                    if(Array.isArray(data)) {
+                        data.forEach(loc => {
+                            if (loc.latitude && loc.longitude) {
+                                let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b>`);
+                                markersLayer.addLayer(marker);
 
-                            let distanceText = "";
-                            if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
-                                let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
-                                if (distFeet < 500) { alertTriggered = true; }
-                                distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
+                                let distanceText = "";
+                                if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
+                                    let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
+                                    if (distFeet < 500) { alertTriggered = true; }
+                                    distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
+                                }
+
+                                listHTML += `
+                                    <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs border border-pink-100 mb-1">
+                                        <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
+                                        <button onclick="focusMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-3 py-1 rounded-lg font-bold shadow-sm">View</button>
+                                    </div>
+                                `;
                             }
-
-                            listHTML += `
-                                <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs border border-pink-100">
-                                    <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
-                                    <button onclick="focusMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-3 py-1 rounded-lg font-bold">View</button>
-                                </div>
-                            `;
-                        }
-                    });
+                        });
+                    }
 
                     document.getElementById('userList').innerHTML = listHTML || '<p class="text-xs text-gray-400 text-center py-2">Active sharers မရှိသေးပါ။</p>';
                     
@@ -235,7 +238,7 @@
                         alertBox.classList.add('hidden'); 
                     }
                 })
-                .catch(err => console.log("Error:", err));
+                .catch(err => console.log("Error fetching locations:", err));
         }
 
         function focusMap(lat, lon) { map.setView([lat, lon], 16); }
@@ -259,7 +262,6 @@
                         alert("သတ်မှတ်ထားသော အချိန်ပြည့်သွားပါပြီ။ Location မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ။");
                     }, hours * 3600 * 1000);
 
-                    // 🛑 Movement-based tracking (Battery Efficient: watches position changes)
                     watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
                         enableHighAccuracy: true,
                         maximumAge: 10000,
@@ -293,7 +295,7 @@
                 lastLon = lon;
             } else {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
-                // 🛑 ပေ ၁၀၀ နှင့်အထက် ရွှေ့မှသာ Server သို့ Data ပို့မည် & Proximity စစ်ဆေးမည်
+                // ပေ ၁၀၀ နှင့်အထက် ရွှေ့မှသာ Server သို့ Data အသစ်ပို့မည်
                 if (distanceInFeet >= 100) {
                     sendToGAS(lat, lon, "Active");
                     lastLat = lat; 
@@ -384,6 +386,12 @@
         }
 
         renderStickers();
+
+        // 🛑 အက်ပ်စဖွင့်ချိန်တွင် တည်နေရာများ တန်းဆွဲမည်
+        fetchAllLocations();
+
+        // 🛑 ၁၀ စက္ကန့်တစ်ကြိမ် Active Sharers List ကို အလိုအလျောက် Update လုပ်မည်
+        setInterval(fetchAllLocations, 10000);
     </script>
 </body>
 </html>
