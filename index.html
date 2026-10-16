@@ -3,77 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Locator App</title>
+    <title>Live Locater App</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Leaflet CSS & Routing Machine -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu&display=swap');
         body { font-family: 'Pyidaungsu', sans-serif; background-color: #fdf2f8; }
-        #map { height: 360px; width: 100%; border-radius: 1rem; }
+        #map { height: 350px; width: 100%; border-radius: 1rem; }
     </style>
 </head>
 <body class="text-gray-800 p-4 max-w-md mx-auto pb-10">
+
     <!-- App Header -->
-    <div class="flex items-center justify-between mb-4 bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-sm border border-pink-100">
-        <h1 class="font-bold text-lg text-pink-600">📍 Live Locator App</h1>
-        <span id="username" class="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded-full font-bold">User</span>
+    <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm">
+        <h1 class="font-bold text-lg text-pink-600">📍 Live Locater App</h1>
+        <span id="username" class="text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full">User</span>
     </div>
 
     <!-- Proximity Alert Box -->
-    <div id="alertBox" class="hidden mb-4 bg-red-500 text-white p-3 rounded-2xl shadow-lg text-sm font-bold animate-bounce flex items-center gap-2">
-        <span>🚨</span>
-        <div>သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!</div>
+    <div id="alertBox" class="hidden mb-4 bg-red-100 border-2 border-red-400 text-red-700 p-3 rounded-2xl shadow-md text-sm font-bold animate-pulse">
+        🚨 သတိပေးချက် - အခြားသူတစ်ဦးနှင့် ပေ ၅၀၀ အတွင်းသို့ ရောက်ရှိလာပါပြီ!
     </div>
 
-    <!-- 1. MAP SECTION -->
+    <!-- 1. LARGE MAP SECTION (Google Maps Default Style via Google Mutant or Standard Tiles) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600 flex items-center gap-2">🗺️ Live Interactive Map</h2>
+        <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
         
-        <div class="mb-3 border border-pink-200 rounded-2xl overflow-hidden shadow-inner">
+        <div class="mb-3 border border-pink-200 overflow-hidden shadow-inner">
             <div id="map"></div>
         </div>
 
-        <!-- Saved Places -->
+        <!-- Custom Places (User Defined) -->
         <div class="mb-3">
             <div class="flex gap-2">
                 <input type="text" id="placeNameInput" placeholder="နေရာအမည် (ဥပမာ - Home, Work)" class="flex-1 border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
-                <button onclick="saveCustomPlace()" class="bg-pink-600 hover:bg-pink-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">📌 နေရာမှတ်မည်</button>
+                <button onclick="saveCustomPlace()" class="bg-pink-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">📌 နေရာမှတ်မည်</button>
             </div>
-            <div id="savedPlacesList" class="flex gap-2 overflow-x-auto mt-2 text-xs py-1"></div>
+            <div id="savedPlacesList" class="flex gap-2 overflow-x-auto mt-2 text-xs"></div>
         </div>
 
-        <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm border border-pink-100">
-            <p id="status" class="text-pink-800 font-bold">Status: မစတင်ရသေးပါ</p>
+        <div class="bg-pink-50 p-3 rounded-xl mb-3 text-sm">
+            <p id="status" class="text-pink-800 font-medium">Status: မစတင်ရသေးပါ</p>
             <p id="coords" class="text-xs text-gray-500 mt-1">Lat: -, Lon: -</p>
         </div>
 
-        <!-- Duration Select (1 hr, 2 hrs, 5 hrs, 10 hrs) -->
-        <div class="flex items-center justify-between mb-3 bg-gray-50 p-2.5 rounded-xl text-xs border border-gray-200">
-            <span class="text-gray-700 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
-            <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1.5 font-bold text-pink-600 outline-none">
+        <!-- Time-limited Sharing Timer (1 hr, 2 hrs, 5 hrs) -->
+        <div class="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl text-xs">
+            <span class="text-gray-600 font-bold">⏱️ မျှဝေမည့် အချိန်သတ်မှတ်ရန်</span>
+            <select id="shareDuration" class="bg-white border border-gray-300 rounded-lg p-1">
                 <option value="1">၁ နာရီ (1 hr)</option>
                 <option value="2">၂ နာရီ (2 hrs)</option>
                 <option value="5">၅ နာရီ (5 hrs)</option>
-                <option value="10" selected>၁၀ နာရီ (10 hrs)</option>
             </select>
         </div>
 
-        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-xl shadow-md transition duration-200">
+        <button onclick="toggleLocationSharing()" id="shareBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-2.5 rounded-xl transition duration-200">
             Location စတင်မျှဝေမည်
         </button>
     </div>
 
-    <!-- 2. ACCURATE NAVIGATION & ROUTE SEARCH -->
+    <!-- 2. NAVIGATION & ROUTE SEARCH (Built-in Map Routing) -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
-        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Accurate Route Navigation</h2>
+        <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
         <div class="space-y-2">
-            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် ရန်ကုန်..." class="w-full border border-pink-200 p-2.5 rounded-xl text-xs outline-none focus:border-pink-500">
-            <button onclick="searchAccurateRoute()" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2.5 rounded-xl text-xs font-bold shadow transition">လမ်းကြောင်း ရှာဖွေမည်</button>
+            <input type="text" id="destinationInput" placeholder="သွားလိုသည့် နေရာ သို့မဟုတ် Lat, Lon" class="w-full border border-pink-200 p-2 rounded-xl text-xs outline-none focus:border-pink-500">
+            <button onclick="searchRoute()" class="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold">လက်ရှိနေရာမှ လမ်းကြောင်းပြမည်</button>
         </div>
     </div>
 
@@ -85,28 +83,30 @@
         </div>
     </div>
 
-    <!-- 4. BUBU & DUDU STICKER GAME -->
+    <!-- 4. BUBU & DUDU GAME SECTION -->
     <div class="bg-white p-4 rounded-2xl shadow-md border border-pink-200">
         <div class="flex justify-between items-center mb-2">
-            <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sticker Sorting</h2>
-            <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full font-bold">Mini Game</span>
+            <h2 class="font-bold text-md text-pink-600">🤎 Bubu & Dudu Sorting</h2>
+            <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
         </div>
-        <p class="text-xs text-gray-500 mb-4">စတစ်ကာ အရွယ်အစား အသေးမှ အကြီးသို့ တန်းစီပေးပါ!</p>
-        
-        <div id="stickerContainer" class="flex justify-center items-center gap-2 mb-4 h-28 bg-pink-50 rounded-2xl p-2 overflow-x-auto border border-pink-100"></div>
-        
+        <p class="text-xs text-gray-500 mb-4">ချစ်စရာ ဝက်ဝံလေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
+
+        <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
+
         <div class="flex gap-2">
-            <button onclick="startStickerSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 rounded-xl transition shadow">
+            <button onclick="startBubbleSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
                 Start Sorting
             </button>
-            <button onclick="resetStickerGame()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2.5 rounded-xl transition">
+            <button onclick="resetGame()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition">
                 Reset
             </button>
         </div>
     </div>
 
-    <!-- Leaflet JS & Routing Engine -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine for Built-in Map Routing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
@@ -116,9 +116,9 @@
             document.getElementById('username').innerText = tg.initDataUnsafe?.user?.first_name || "Guest";
         }
 
-        // ⚠️ မိမိ၏ GAS Web App URL ဖြင့် အစားထိုးပါ
-        const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
 
+        // Map setup with Google Maps standard tile look
         let map = L.map('map').setView([16.8661, 96.1951], 13);
         L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             maxZoom: 20,
@@ -136,7 +136,7 @@
             let name = document.getElementById('placeNameInput').value;
             if(!name) { alert("နေရာအမည် ရိုက်ထည့်ပါ"); return; }
             if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာ မရသေးပါ။"); return; }
-            
+
             savedPlaces.push({ name: name, lat: myCurrentLat, lon: myCurrentLon });
             document.getElementById('placeNameInput').value = '';
             renderSavedPlaces();
@@ -147,54 +147,41 @@
             let container = document.getElementById('savedPlacesList');
             container.innerHTML = '';
             savedPlaces.forEach(p => {
-                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16)" class="bg-pink-100 hover:bg-pink-200 text-pink-700 px-3 py-1 rounded-xl whitespace-nowrap font-bold shadow-sm transition">📌 ${p.name}</button>`;
+                let btn = document.createElement('button1');
+                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16)" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
             });
         }
 
-        async function searchAccurateRoute() {
+        function searchRoute() {
             let destText = document.getElementById('destinationInput').value;
             if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
-            if(!myCurrentLat || !myCurrentLon) { alert("ကျေးဇူးပြု၍ Location Sharing ကို အရင်စတင်ပါ"); return; }
+            if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာကို ရယူနေပါသည်..."); return; }
 
-            let targetLat, targetLon;
+            // Check if saved place matches
+            let targetLat = myCurrentLat + 0.01; // Default mock distance if text search
+            let targetLon = myCurrentLon + 0.01;
+
             let matched = savedPlaces.find(p => p.name.toLowerCase() === destText.toLowerCase());
-            
             if(matched) {
                 targetLat = matched.lat;
                 targetLon = matched.lon;
-            } else {
-                try {
-                    let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}`);
-                    let data = await res.json();
-                    if(data.length > 0) {
-                        targetLat = parseFloat(data[0].lat);
-                        targetLon = parseFloat(data[0].lon);
-                    } else {
-                        alert("နေရာ ရှာမတွေ့ပါ။");
-                        return;
-                    }
-                } catch(e) {
-                    alert("နေရာ ရှာဖွေမှု မအောင်မြင်ပါ");
-                    return;
-                }
             }
 
-            if(routingControl) map.removeControl(routingControl);
+            if(routingControl) {
+                map.removeControl(routingControl);
+            }
 
             routingControl = L.Routing.control({
                 waypoints: [
                     L.latLng(myCurrentLat, myCurrentLon),
                     L.latLng(targetLat, targetLon)
                 ],
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-                lineOptions: { styles: [{ color: '#db2777', weight: 5, opacity: 0.8 }] },
-                createMarker: function(i, wp) {
-                    return L.marker(wp.latLng).bindPopup(i === 0 ? "စတင်သည့်နေရာ" : "ဦးတည်ရာ");
-                }
+                routeWhileDragging: false,
+                lineOptions: { styles: [{ color: '#db2777', weight: 4 }] },
+                createMarker: function() { return null; }
             }).addTo(map);
         }
 
-        // Server မှ Active Sharers Data အားလုံးကို ဆွဲယူမည့် Function
         function fetchAllLocations() {
             fetch(GAS_URL)
                 .then(res => res.json())
@@ -204,44 +191,40 @@
                     let alertTriggered = false;
                     let myUserId = tg?.initDataUnsafe?.user?.id?.toString() || "123456";
 
-                    if(Array.isArray(data)) {
-                        data.forEach(loc => {
-                            if (loc.latitude && loc.longitude) {
-                                let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b>`);
-                                markersLayer.addLayer(marker);
+                    data.forEach(loc => {
+                        if (loc.latitude && loc.longitude) {
+                            let marker = L.marker([loc.latitude, loc.longitude]).bindPopup(`<b>${loc.name || 'User'}</b>`);
+                            markersLayer.addLayer(marker);
 
-                                let distanceText = "";
-                                if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
-                                    let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
-                                    if (distFeet < 500) { alertTriggered = true; }
-                                    distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
-                                }
-
-                                listHTML += `
-                                    <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs border border-pink-100 mb-1">
-                                        <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
-                                        <button onclick="focusMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-3 py-1 rounded-lg font-bold shadow-sm">View</button>
-                                    </div>
-                                `;
+                            let distanceText = "";
+                            if (myCurrentLat !== null && myCurrentLon !== null && loc.userId.toString() !== myUserId) {
+                                let distFeet = calculateDistance(myCurrentLat, myCurrentLon, loc.latitude, loc.longitude);
+                                if (distFeet < 500) { alertTriggered = true; }
+                                distanceText = `<span class="text-xs text-pink-600 font-bold">(${distFeet.toFixed(0)} ft away)</span>`;
                             }
-                        });
-                    }
+
+                            listHTML += `
+                                <div class="flex items-center justify-between bg-pink-50 p-2.5 rounded-xl text-xs">
+                                    <span class="font-bold text-gray-700">🐼 ${loc.name} ${distanceText}</span>
+                                    <button onclick="focusMap(${loc.latitude}, ${loc.longitude})" class="bg-pink-500 text-white px-2.5 py-1 rounded-lg">View</button>
+                                </div>
+                            `;
+                        }
+                    });
 
                     document.getElementById('userList').innerHTML = listHTML || '<p class="text-xs text-gray-400 text-center py-2">Active sharers မရှိသေးပါ။</p>';
                     
                     let alertBox = document.getElementById('alertBox');
-                    if (alertTriggered) { 
-                        alertBox.classList.remove('hidden');
-                        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
-                    } else { 
-                        alertBox.classList.add('hidden'); 
-                    }
+                    if (alertTriggered) { alertBox.classList.remove('hidden'); } 
+                    else { alertBox.classList.add('hidden'); }
                 })
-                .catch(err => console.log("Error fetching locations:", err));
+                .catch(err => console.log("Error:", err));
         }
 
         function focusMap(lat, lon) { map.setView([lat, lon], 16); }
+
+        setInterval(fetchAllLocations, 5000);
+        fetchAllLocations();
 
         let watchId = null;
         let lastLat = null;
@@ -256,6 +239,7 @@
                     btn.innerText = "Location ရပ်တန့်မည်";
                     btn.classList.replace('bg-pink-500', 'bg-red-500');
 
+                    // Time-limited sharing auto stop (1 hr, 2 hrs, 5 hrs)
                     let hours = parseInt(document.getElementById('shareDuration').value);
                     shareTimer = setTimeout(() => {
                         toggleLocationSharing();
@@ -289,18 +273,18 @@
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
             map.setView([lat, lon], 15);
 
-            if (lastLat === null && lastLon === null) {
-                sendToGAS(lat, lon, "Active");
-                lastLat = lat; 
-                lastLon = lon;
-            } else {
+            // Backend-only distance throttling (100 ft move threshold)
+            if (lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
-                // ပေ ၁၀၀ နှင့်အထက် ရွှေ့မှသာ Server သို့ Data အသစ်ပို့မည်
                 if (distanceInFeet >= 100) {
                     sendToGAS(lat, lon, "Active");
-                    lastLat = lat; 
+                    lastLat = lat;
                     lastLon = lon;
                 }
+            } else if (lastLat === null) {
+                sendToGAS(lat, lon, "Active");
+                lastLat = lat;
+                lastLon = lon;
             }
         }
 
@@ -312,14 +296,16 @@
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 5280; // Distance in feet
+            return R * c * 5280;
         }
 
-        function handleError() { document.getElementById('status').innerText = "Status: Location ရယူ၍ မရပါ"; }
+        function handleError(error) { document.getElementById('status').innerText = "Status: Location ရယူ၍ မရပါ"; }
 
         function sendToGAS(lat, lon, statusScore = "Active") {
+            document.getElementById('status').innerText = statusScore === "Active" ? "Status: Google Sheet သို့ ပို့နေသည်..." : "Status: မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ";
             let userId = tg?.initDataUnsafe?.user?.id || "123456";
             let userName = tg?.initDataUnsafe?.user?.first_name || "Bubu";
+
             fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -328,70 +314,64 @@
             }).then(() => {
                 if(statusScore === "Active") { document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅"; }
                 fetchAllLocations();
-            });
+            }).catch(err => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
         }
 
-        // --- BUBU & DUDU STICKER GAME ---
-        let stickerArray = [
-            { id: 1, sizeRank: 2, sticker: "🧸", fontSize: "text-2xl" },
-            { id: 2, sizeRank: 4, sticker: "🐻", fontSize: "text-4xl" },
-            { id: 3, sizeRank: 1, sticker: "🤎", fontSize: "text-lg" },
-            { id: 4, sizeRank: 5, sticker: "🐼", fontSize: "text-5xl" },
-            { id: 5, sizeRank: 3, sticker: "🐰", fontSize: "text-3xl" }
+        // --- BUBU & DUDU SORTING GAME ---
+        let characterArray = [
+            { id: 1, size: 2, emoji: "🧸", label: "Small" },
+            { id: 2, size: 5, emoji: "🐻", label: "Medium" },
+            { id: 3, size: 1, emoji: "🤎", label: "Tiny" },
+            { id: 4, size: 8, emoji: "🐼", label: "Large" },
+            { id: 5, size: 3, emoji: "🧸", label: "Normal" }
         ];
 
-        function renderStickers() {
-            const container = document.getElementById('stickerContainer');
+        function renderBubbles() {
+            const container = document.getElementById('bubbleContainer');
             if (!container) return;
             container.innerHTML = '';
-            stickerArray.forEach(item => {
+            characterArray.forEach(item => {
                 let div = document.createElement('div');
-                div.className = "flex items-center justify-center w-16 h-16 bg-white border-2 border-pink-200 rounded-2xl shadow-sm transition-all duration-300";
-                div.innerHTML = `<span class="${item.fontSize}">${item.sticker}</span>`;
+                div.className = "flex flex-col items-center justify-center w-14 h-16 bg-white border-2 border-pink-300 rounded-2xl shadow-sm transition-all duration-300";
+                div.innerHTML = `<span class="text-2xl">item.emoji</span><spanclass="text-xsfont-boldtext-pink-600">{item.size}</span>`;
                 container.appendChild(div);
             });
         }
 
-        function resetStickerGame() {
-            stickerArray.sort(() => Math.random() - 0.5);
-            renderStickers();
+        function resetGame() {
+            characterArray.sort(() => Math.random() - 0.5);
+            renderBubbles();
         }
 
-        async function startStickerSort() {
-            let arr = [...stickerArray];
+        async function startBubbleSort() {
+            let arr = [...characterArray];
             let len = arr.length;
-            const container = document.getElementById('stickerContainer');
+            const container = document.getElementById('bubbleContainer');
 
             for (let i = 0; i < len; i++) {
                 for (let j = 0; j < len - i - 1; j++) {
                     let nodes = container.children;
-                    nodes[j].classList.add('bg-pink-200', 'scale-110', 'border-pink-500');
-                    nodes[j+1].classList.add('bg-pink-200', 'scale-110', 'border-pink-500');
-
+                    nodes[j].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
+                    nodes[j+1].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
                     await new Promise(resolve => setTimeout(resolve, 500));
 
-                    if (arr[j].sizeRank > arr[j + 1].sizeRank) {
+                    if (arr[j].size > arr[j + 1].size) {
                         let temp = arr[j];
                         arr[j] = arr[j + 1];
                         arr[j + 1] = temp;
-                        stickerArray = [...arr];
-                        renderStickers();
+                        characterArray = [...arr];
+                        renderBubbles();
                         await new Promise(resolve => setTimeout(resolve, 300));
                     }
 
-                    nodes[j]?.classList.remove('bg-pink-200', 'scale-110', 'border-pink-500');
-                    nodes[j+1]?.classList.remove('bg-pink-200', 'scale-110', 'border-pink-500');
+                    nodes[j].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
+                    nodes[j+1].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
                 }
             }
         }
 
-        renderStickers();
-
-        // 🛑 အက်ပ်စဖွင့်ချိန်တွင် တည်နေရာများ တန်းဆွဲမည်
-        fetchAllLocations();
-
-        // 🛑 ၁၀ စက္ကန့်တစ်ကြိမ် Active Sharers List ကို အလိုအလျောက် Update လုပ်မည်
-        setInterval(fetchAllLocations, 10000);
+        renderBubbles();
     </script>
 </body>
 </html>
+
