@@ -31,7 +31,7 @@
     <!-- 1. LARGE MAP SECTION -->
     <div id="mapSection" class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 flex items-center gap-2">🗺️ Live Interactive Map</h2>
-        
+
         <div class="mb-3 border border-pink-200 overflow-hidden shadow-inner">
             <div id="map"></div>
         </div>
@@ -66,7 +66,7 @@
         </button>
     </div>
 
-    <!-- 2. NAVIGATION & ROUTE SEARCH (In-App Map Routing) -->
+    <!-- 2. NAVIGATION & ROUTE -->
     <div class="bg-white p-4 rounded-2xl shadow-md mb-4 border border-pink-100">
         <h2 class="font-bold text-md mb-2 text-pink-600">🧭 Navigation & Route</h2>
         <div class="space-y-2">
@@ -92,14 +92,14 @@
             <span class="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">Mini Game</span>
         </div>
         <p class="text-xs text-gray-500 mb-4">ချစ်စရာ အရုပ်လေးများ အရွယ်အစားအလိုက် တန်းစီကြမယ်!</p>
-        
+
         <div id="bubbleContainer" class="flex justify-center items-center gap-2 mb-4 h-24 bg-pink-50 rounded-xl p-2 overflow-x-auto"></div>
-        
+
         <div class="flex gap-2">
-            <button onclick="startBubbleSort()" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
+            <button onclick="startBubbleSort()" id="sortBtn" class="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 rounded-xl transition">
                 Start Sorting
             </button>
-            <button onclick="resetGame()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition">
+            <button onclick="resetGame()" id="resetBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 rounded-xl transition">
                 Reset
             </button>
         </div>
@@ -114,7 +114,6 @@
 
         if (tg) {
             tg.expand();
-            // First Name + Last Name ပေါင်းစပ်ခြင်း
             let firstName = tg.initDataUnsafe?.user?.first_name || "Guest";
             let lastName = tg.initDataUnsafe?.user?.last_name || "";
             telegramFullName = `${firstName} ${lastName}`.trim();
@@ -132,14 +131,14 @@
         }).addTo(map);
 
         let markersLayer = L.layerGroup().addTo(map);
-        let routeLine = null; // Map ပေါ်တွင် မျဉ်းကြောင်းဆွဲရန်
+        let routeLine = null;
         let myCurrentLat = null;
         let myCurrentLon = null;
         let savedPlaces = [];
         let hasVibrated = false;
 
         function saveCustomPlace() {
-            let name = document.getElementById('placeNameInput').value;
+            let name = document.getElementById('placeNameInput').value.trim();
             if(!name) { alert("နေရာအမည် ရိုက်ထည့်ပါ"); return; }
             if(!myCurrentLat || !myCurrentLon) { alert("လက်ရှိတည်နေရာ မရသေးပါ။"); return; }
 
@@ -153,11 +152,11 @@
             let container = document.getElementById('savedPlacesList');
             container.innerHTML = '';
             savedPlaces.forEach(p => {
-                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16)" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
+                container.innerHTML += `<button onclick="map.setView([${p.lat}, ${p.lon}], 16); map.invalidateSize();" class="bg-pink-100 text-pink-700 px-2 py-1 rounded-lg whitespace-nowrap font-bold">📌 ${p.name}</button>`;
             });
         }
 
-        // --- In-App Navigation Route & ETA Calculator ---
+        // --- In-App Navigation Route & ETA Calculator (Optimized for Yangon/Myanmar) ---
         function calculateInAppRoute() {
             let destText = document.getElementById('destinationInput').value.trim();
             if(!destText) { alert("သွားလိုသည့်နေရာကို ရိုက်ထည့်ပါ"); return; }
@@ -178,40 +177,58 @@
                     drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
                 } else { alert("Lat, Lon ပုံစံ မှားယွင်းနေပါသည်။"); }
             } else {
-                // Nominatim Geocoding API သုံး၍ သွားလိုသည့် နေရာ၏ Lat, Lon ကို ရှာဖွေခြင်း
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.length > 0) {
-                            targetLat = parseFloat(data[0].lat);
-                            targetLon = parseFloat(data[0].lon);
-                            drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
-                        } else {
-                            alert("ထိုနေရာကို မရှာတွေ့ပါ၊ Lat, Lon တိုက်ရိုက် ရိုက်ထည့်ပေးပါ သို့မဟုတ် Saved Place သုံးပါ");
-                        }
-                    })
-                    .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
+                // Nominatim API ကို ရန်ကုန်မြို့/မြန်မာနိုင်ငံနယ်နိမိတ် (Viewbox & Boundingbox) အထူးပြု၍ ရှာဖွေစေခြင်း
+                // Yangon bounds approximate: lon min/max: 96.0 - 96.3, lat min/max: 16.7 - 17.0 (Myanmar country-wide bounding box can also be used)
+                let viewbox = "94.5,16.2,97.8,17.5"; // Yangon Region / Greater Yangon area viewbox (lon1,lat1,lon2,lat2)
+                let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText)}&viewbox=${viewbox}&bounded=1`;
+
+                fetch(searchUrl, {
+                    headers: { 'User-Agent': 'LiveLocaterApp/1.0' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        targetLat = parseFloat(data[0].lat);
+                        targetLon = parseFloat(data[0].lon);
+                        drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
+                    } else {
+                        // အကယ်၍ အထက်ပါ Area ထဲ မတွေ့ပါက တစ်နိုင်ငံလုံးအတိုင်းအတာဖြင့် ထပ်မံရှာဖွေပေးခြင်း
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destText + ', Myanmar')}`, {
+                            headers: { 'User-Agent': 'LiveLocaterApp/1.0' }
+                        })
+                        .then(res => res.json())
+                        .then(fallbackData => {
+                            if (fallbackData && fallbackData.length > 0) {
+                                targetLat = parseFloat(fallbackData[0].lat);
+                                targetLon = parseFloat(fallbackData[0].lon);
+                                drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
+                            } else {
+                                alert("ထိုနေရာကို မရှာတွေ့ပါ၊ Lat, Lon တိုက်ရိုက် ရိုက်ထည့်ပေးပါ သို့မဟုတ် Saved Place သုံးပါ");
+                            }
+                        })
+                        .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
+                    }
+                })
+                .catch(() => alert("နေရာရှာဖွေရာတွင် အဆင်မပြေပါ"));
             }
         }
 
-        // Map ပေါ်တွင် မျဉ်းကြောင်းဆွဲပေးပြီး ရောက်ရှိမည့်အချိန် (ETA) ကို တွက်ချက်ပြသပေးသည့် Function
         function drawRouteAndETA(lat1, lon1, lat2, lon2) {
             document.getElementById('mapSection').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => { map.invalidateSize(); }, 300);
 
             if (routeLine) { map.removeLayer(routeLine); }
 
-            // OSRM Public Routing API ဖြင့် မောင်းနှင်မှု လမ်းကြောင်းဆွဲခြင်း
             fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.routes && data.routes.length > 0) {
                         let route = data.routes[0];
                         let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                        
+
                         routeLine = L.polyline(coords, { color: '#db2777', weight: 5, opacity: 0.8 }).addTo(map);
                         map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
 
-                        // ETA တွက်ချက်ခြင်း (Seconds -> Minutes)
                         let durationMinutes = Math.round(route.duration / 60);
                         let arrivalTime = new Date(Date.now() + route.duration * 1000);
                         let timeString = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -222,7 +239,6 @@
                     }
                 })
                 .catch(() => {
-                    // API မရပါက Straight Polyline ဆွဲပေးခြင်း
                     routeLine = L.polyline([[lat1, lon1], [lat2, lon2]], { color: '#db2777', weight: 4, dashArray: '5, 10' }).addTo(map);
                     map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
                 });
@@ -263,14 +279,13 @@
                     });
 
                     document.getElementById('userList').innerHTML = listHTML || '<p class="text-xs text-gray-400 text-center py-2">Active sharers မရှိသေးပါ။</p>';
-                    
+
                     let alertBox = document.getElementById('alertBox');
                     let alertMsg = document.getElementById('alertMessage');
                     if (alertTriggered) { 
                         alertMsg.innerText = `${alertUserName} နှင့် ပေ ၅၀၀ အတွင်း နီးစပ်နေပါပြီ`;
                         alertBox.classList.remove('hidden'); 
 
-                        // ပေ ၅၀၀ အတွင်းရှိပါက 3 စက္ကန့် Vibrate လုပ်ရန်
                         if (!hasVibrated && navigator.vibrate) {
                             navigator.vibrate(3000);
                             hasVibrated = true;
@@ -283,9 +298,9 @@
                 .catch(err => console.log("Error:", err));
         }
 
-        // Active Sharer ၏ View ကိုနှိပ်လျှင် ကိုယ်နှင့် ထိုသူ့ကြား မျဉ်းကြောင်းဆွဲပြခြင်း
         function drawLineToUser(targetLat, targetLon) {
             document.getElementById('mapSection').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => { map.invalidateSize(); }, 300);
 
             if (myCurrentLat !== null && myCurrentLon !== null) {
                 drawRouteAndETA(myCurrentLat, myCurrentLon, targetLat, targetLon);
@@ -294,7 +309,8 @@
             }
         }
 
-        setInterval(fetchAllLocations, 5000);
+        // Active Sharers များကိုသာ အမြဲစောင့်ကြည့်ရန် (Location Sharing ကို ပိတ်ထားလျှင်တောင် သူများနေရာကို ကြည့်နိုင်ရန်)
+        setInterval(fetchAllLocations, 10000);
         fetchAllLocations();
 
         let watchId = null;
@@ -302,16 +318,11 @@
         let lastLon = null;
         let shareTimer = null;
 
-        window.addEventListener('load', () => {
-            let isSharing = localStorage.getItem('isLocationSharing') === 'true';
-            if (isSharing) {
-                startWatchingLocation(false);
-            }
-        });
+        // အရေးကြီးချက် - App စဖွင့်ချိန် (load လုပ်ချိန်) တွင် Location အလိုအလျောက် မပွင့်စေရန် localStorage စစ်ဆေးမှုကို ဖြုတ်ထားလိုက်ပါပြီ။
+        // ခလုတ်နှိပ်မှသာ start ဖြစ်ပါမည်။
 
         function toggleLocationSharing() {
             if (watchId === null) {
-                localStorage.setItem('isLocationSharing', 'true');
                 startWatchingLocation(true);
             } else {
                 stopLocationSharing();
@@ -325,6 +336,8 @@
                 btn.innerText = "Location ရပ်တန့်မည်";
                 btn.classList.replace('bg-pink-500', 'bg-red-500');
 
+                if (shareTimer) clearTimeout(shareTimer);
+
                 if (isNewStart) {
                     let hours = parseInt(document.getElementById('shareDuration').value);
                     shareTimer = setTimeout(() => {
@@ -336,7 +349,7 @@
                 watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
                     enableHighAccuracy: true,
                     maximumAge: 10000,
-                    timeout: 5000
+                    timeout: 10000
                 });
             } else { alert("Geolocation is not supported."); }
         }
@@ -345,10 +358,9 @@
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
             }
-            if(shareTimer) clearTimeout(shareTimer);
-            localStorage.removeItem('isLocationSharing');
+            if (shareTimer) clearTimeout(shareTimer);
             sendToGAS(lastLat || 16.8661, lastLon || 96.1951, "Stopped");
-            
+
             watchId = null;
             const btn = document.getElementById('shareBtn');
             document.getElementById('status').innerText = "Status: ရပ်တန့်ထားသည်";
@@ -389,7 +401,13 @@
             return R * c * 5280;
         }
 
-        function handleError(error) { document.getElementById('status').innerText = "Status: Location ရယူ၍ မရပါ"; }
+        function handleError(error) { 
+            let errorMsg = "Status: Location ရယူ၍ မရပါ";
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = "Status: Location ခွင့်ပြုချက် ပိတ်ထားပါသည်";
+            }
+            document.getElementById('status').innerText = errorMsg; 
+        }
 
         function sendToGAS(lat, lon, statusScore = "Active") {
             document.getElementById('status').innerText = statusScore === "Active" ? "Status: Google Sheet သို့ ပို့နေသည်..." : "Status: မျှဝေမှုကို ရပ်တန့်လိုက်ပါပြီ";
@@ -404,7 +422,7 @@
             }).then(() => {
                 if(statusScore === "Active") { document.getElementById('status').innerText = "Status: တည်နေရာ အပ်ဒိတ်လုပ်ပြီးပါပြီ ✅"; }
                 fetchAllLocations();
-            }).catch(err => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
+            }).catch(() => { document.getElementById('status').innerText = "Status: ပို့ဆောင်မှု မအောင်မြင်ပါ ❌"; });
         }
 
         // --- BUBBLE SORTING GAME ---
@@ -415,6 +433,8 @@
             { id: 4, size: 8, emoji: "🐼" },
             { id: 5, size: 3, emoji: "🧸" }
         ];
+
+        let isSorting = false;
 
         function renderBubbles() {
             const container = document.getElementById('bubbleContainer');
@@ -429,11 +449,20 @@
         }
 
         function resetGame() {
+            if (isSorting) return;
             characterArray.sort(() => Math.random() - 0.5);
             renderBubbles();
         }
 
         async function startBubbleSort() {
+            if (isSorting) return;
+            isSorting = true;
+            
+            document.getElementById('sortBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = true;
+            document.getElementById('sortBtn').classList.add('opacity-50');
+            document.getElementById('resetBtn').classList.add('opacity-50');
+
             let arr = [...characterArray];
             let len = arr.length;
             const container = document.getElementById('bubbleContainer');
@@ -441,10 +470,12 @@
             for (let i = 0; i < len; i++) {
                 for (let j = 0; j < len - i - 1; j++) {
                     let nodes = container.children;
-                    nodes[j].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
-                    nodes[j+1].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
-                    
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    if (nodes[j] && nodes[j+1]) {
+                        nodes[j].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
+                        nodes[j+1].classList.add('bg-pink-200', 'scale-105', 'border-pink-500');
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 400));
 
                     if (arr[j].size > arr[j + 1].size) {
                         let temp = arr[j];
@@ -452,13 +483,21 @@
                         arr[j + 1] = temp;
                         characterArray = [...arr];
                         renderBubbles();
-                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await new Promise(resolve => setTimeout(resolve, 200));
                     }
 
-                    nodes[j].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
-                    nodes[j+1].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
+                    if (nodes[j] && nodes[j+1]) {
+                        nodes[j].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
+                        nodes[j+1].classList.remove('bg-pink-200', 'scale-105', 'border-pink-500');
+                    }
                 }
             }
+
+            isSorting = false;
+            document.getElementById('sortBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = false;
+            document.getElementById('sortBtn').classList.remove('opacity-50');
+            document.getElementById('resetBtn').classList.remove('opacity-50');
         }
 
         renderBubbles();
