@@ -29,7 +29,6 @@
             justify-content: center;
         }
 
-        /* အသည်းပုံအလယ်တွင် စာသား ထည့်သွင်းခြင်း */
         .heart::after {
             content: "Love You Mee Mee";
             position: absolute;
@@ -55,10 +54,57 @@
                 opacity: 0;
             }
         }
+
+        /* 🌧️☀️ Dynamic Weather Overlay Effects */
+        .weather-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9998;
+            overflow: hidden;
+        }
+
+        /* Rain Drop Animation */
+        .drop {
+            position: absolute;
+            background: linear-gradient(transparent, rgba(255, 255, 255, 0.8));
+            width: 2px;
+            height: 25px;
+            opacity: 0.7;
+            animation: fall 0.8s linear infinite;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-30px); }
+            100% { transform: translateY(105vh); }
+        }
+
+        /* Sunny Sun Glow Animation */
+        .sun-glow {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255,223,0,0.6) 0%, rgba(255,165,0,0.2) 50%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            animation: pulseSun 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseSun {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.3); opacity: 1; }
+        }
     </style>
 </head>
 <body id="appBody" class="text-gray-800 p-4 max-w-md mx-auto pb-10 bg-pink-100">
     
+    <!-- Weather Overlay -->
+    <div id="weatherLayer" class="weather-layer"></div>
+
     <!-- App Header & Theme Selector -->
     <div class="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl shadow-sm border border-theme">
         <h1 id="headerTitle" class="font-bold text-lg text-pink-700">📍 Live Locater</h1>
@@ -181,7 +227,6 @@
             telegramFullName = `${firstName} ${lastName}`.trim();
             document.getElementById('username').innerText = telegramFullName;
 
-            // "May Thu Hlaing" နာမည် ပါဝင်နေပါက အသည်းပုံပေါ်တွင် "Love You Mee Mee" စာသားဖြင့် ၃ စက္ကန့်စာ ပြေးမည်
             if (telegramFullName.toLowerCase().includes("may thu hlaing")) {
                 triggerHeartAnimation();
             }
@@ -205,6 +250,41 @@
             setTimeout(() => {
                 clearInterval(heartInterval);
             }, duration);
+        }
+
+        // --- Weather Fetch & Effects ---
+        function checkCurrentWeather(lat, lon) {
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+            fetch(weatherUrl)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.current_weather) {
+                        const code = data.current_weather.weathercode;
+                        applyWeatherEffect(code);
+                    }
+                })
+                .catch(err => console.log("Weather Fetch Error:", err));
+        }
+
+        function applyWeatherEffect(code) {
+            const container = document.getElementById('weatherLayer');
+            container.innerHTML = '';
+
+            // Rain Weather Codes
+            if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
+                for (let i = 0; i < 60; i++) {
+                    let drop = document.createElement('div');
+                    drop.className = 'drop';
+                    drop.style.left = Math.random() * 100 + 'vw';
+                    drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+                    drop.style.animationDelay = Math.random() * 2 + 's';
+                    container.appendChild(drop);
+                }
+            } else if ([0, 1].includes(code)) { // Sunny Weather Codes
+                let sun = document.createElement('div');
+                sun.className = 'sun-glow';
+                container.appendChild(sun);
+            }
         }
 
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzWHt4YFHxbOzxlZ2f_Wfr8rb7ztbqLo6aBeHG74DLKUlLuZ3EhLHeqmojwR8Tb_jh0/exec";
@@ -507,6 +587,10 @@
             myCurrentLat = lat;
             myCurrentLon = lon;
             document.getElementById('coords').innerText = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+            
+            // လက်ရှိ တည်နေရာ၏ ရာသီဥတုကို စစ်ဆေးမည်
+            checkCurrentWeather(lat, lon);
+
             if (lastLat !== null && lastLon !== null) {
                 let distanceInFeet = calculateDistance(lastLat, lastLon, lat, lon);
                 if (distanceInFeet >= 100) {
